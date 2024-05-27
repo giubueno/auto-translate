@@ -1,0 +1,19 @@
+#!/bin/bash
+
+BUCKET_NAME=saddleback-translations
+VIDEO_FILE_PATH=./input/a.mp4
+AUDIO_FILE_PATH=./output/a.mp3
+
+./create_bucket $BUCKET_NAME
+
+if [ $? -nq 0 ]; then
+    echo "Error: Failed to create the bucket."
+    exit 1
+fi
+
+# extract audio from video
+./extract $VIDEO_FILE_PATH $AUDIO_FILE_PATH
+if [ $? -nq 0 ]; then
+    echo "Error: Failed to extract audio from video."
+    exit 1
+fi

@@ -3,6 +3,3 @@
 *.m4a
 *.json
 .DS_Store
-output/
-input/
-execute
