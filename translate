@@ -1,0 +1,44 @@
+#!/bin/bash
+
+####################################################################################################
+# This script checks if the necessary arguments are provided and translates a transcription file to 
+# a target language using AWS Translate.
+####################################################################################################
+
+# Check if the necessary arguments are provided
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <transcription.json> <s3_bucket> <target_language_code>"
+    exit 1
+fi
+
+transcription_file=$1
+s3_bucket=$2
+target_language=$3
+
+# Get the default region from AWS configuration
+region=$(aws configure get region)
+
+# Translate the transcription to the target language
+translated_text=$(aws translate translate-text \
+    --region $region \
+    --source-language-code en \
+    --target-language-code $target_language \
+    --text "$(cat $transcription_file | jq -r '.results.transcripts[0].transcript')" \
+    --output text)
+
+# Synthesize the translated text into speech using AWS Polly
+aws polly synthesize-speech \
+    --region $region \
+    --output-format mp3 \
+    --text "$translated_text" \
+    --voice-id $voice_id \
+    translated_audio.mp3
+
+# Check if audio synthesis is successful
+if [ $? -eq 0 ]; then
+    echo "Audio synthesis completed successfully."
+else
+    echo "Failed to synthesize audio."
+    exit 1
+fi
+

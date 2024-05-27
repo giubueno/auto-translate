@@ -1,0 +1,35 @@
+#!/bin/bash
+
+################################################################################
+# Script to upload a file to a private S3 bucket
+################################################################################
+
+# Check if file path, bucket name, and S3 key arguments are provided
+if [ $# -ne 3 ]; then
+    echo "Usage: $0 <file_path> <bucket_name> <s3_key>"
+    exit 1
+fi
+
+# Set variables
+FILE_PATH="$1"
+S3_BUCKET="$2"
+S3_KEY="$3"
+
+# Check if the bucket exists, if not, create it
+if ! aws s3 ls "s3://$S3_BUCKET" 2>&1 | grep -q 'NoSuchBucket'; then
+    echo "Bucket $S3_BUCKET already exists."
+else
+    echo "Creating bucket: $S3_BUCKET"
+    aws s3 mb "s3://$S3_BUCKET"
+fi
+
+# Upload file to S3
+aws s3 cp "$FILE_PATH" "s3://$S3_BUCKET/$S3_KEY"
+
+# Check if upload was successful
+if [ $? -eq 0 ]; then
+    echo "File uploaded successfully to private S3 bucket: $S3_BUCKET"
+else
+    echo "Error uploading file to S3 bucket: $S3_BUCKET"
+fi
+
