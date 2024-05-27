@@ -4,3 +4,4 @@
 *.json
 .DS_Store
 output/
+execute
