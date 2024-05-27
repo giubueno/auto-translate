@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Check if the necessary argument is provided
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <video file name without the extension>"
+    echo "For example: $0 video1"
+    exit 1
+fi
+
+FILE_NAME=$1
+BUCKET_NAME=saddleback-translations
+VIDEO_FILE_PATH=./input/$FILE_NAME.mp4
+AUDIO_FILE_NAME=$FILE_NAME.mp3
+AUDIO_FILE_PATH="./output/$AUDIO_FILE_NAME"
+UPLOADED_AUDIO_FILE_PATH="input/$AUDIO_FILE_NAME"
+TRANSCRIPTION_FILE_NAME="input/transcriptions/$FILE_NAME.json"
+
+./create_bucket $BUCKET_NAME
+
+if [ $? -eq 0 ]; then
+    echo "Bucket created successfully."
+else
+    echo "Error: Failed to create the bucket."
+    exit 1
+fi
+
+# extract audio from video
+./extract $VIDEO_FILE_PATH $AUDIO_FILE_PATH
+if [ $? -eq 0 ]; then
+    echo "Audio extracted successfully."
+else
+    echo "Error: Failed to extract audio from video."
+    exit 1
+fi
+
+# upload the audio file to the bucket
+./upload $AUDIO_FILE_PATH $BUCKET_NAME $UPLOADED_AUDIO_FILE_PATH
+if [ $? -eq 0 ]; then
+    echo "Audio uploaded successfully."
+else
+    echo "Error: Failed to upload audio."
+    exit 1
+fi
+
+# transcript the audio file
+./transcribe $UPLOADED_AUDIO_FILE_PATH $TRANSCRIPTION_FILE_NAME $BUCKET_NAME
+if [ $? -eq 0 ]; then
+    echo "Audio transcribed successfully."
+else
+    echo "Error: Failed to transcribe audio."
+    exit 1
+fi
+
+# download the transcription file
+./download $TRANSCRIPTION_FILE_NAME $BUCKET_NAME
+
+# extract the transcription from JSON into text
+./transform ./input/transcriptions/$FILE_NAME.json "./input/translations/$(echo $FILE_NAME)_en.txt"
+
+# upload the translation text to the bucket
+./upload "./input/translations/$(echo $FILE_NAME)_en.txt" $BUCKET_NAME "input/translations/$(echo $FILE_NAME)_en.txt"
+
+# translate the text
+./translate "input/translations/$(echo $FILE_NAME)_en.txt" $BUCKET_NAME

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+####################################################################################################
+# This script splits an audio file into multiple chunks based on silence intervals.
+# It uses ffmpeg to detect silence intervals and then splits the input file into chunks.
+# The silence threshold and minimum silence duration can be adjusted as needed.
+####################################################################################################
+
+# Check if the input file is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 input_file.mp3"
+    exit 1
+fi
+
+input_file="$1"
+output_dir="output"
+silence_threshold="-50dB"
+min_silence_duration="2" # in seconds
+
+# Create output directory if it doesn't exist
+mkdir -p "$output_dir"
+
+# Use ffmpeg to split the input file based on silence
+ffmpeg -i "$input_file" -af "silencedetect=n=$silence_threshold:d=$min_silence_duration" -f null - 2> silence.txt
+
+# Extract the silence intervals from the ffmpeg output
+grep "silence_start" silence.txt | awk -F: '{print $2}' | awk '{print $1}' > silence_intervals.txt
+
+# Split the input file into chunks based on silence intervals
+start_time=0
+i=1
+while read -r end_time; do
+    duration=$(echo "$end_time - $start_time" | bc)
+    output_file="$output_dir/chunk_$i.mp3"
+    ffmpeg -i "$input_file" -ss $start_time -t $duration -c copy "$output_file" -y
+    echo "Chunk $i created: $output_file"
+    start_time=$end_time
+    i=$((i+1))
+done < silence_intervals.txt
+
+# Process the last segment
+output_file="$output_dir/chunk_$i.mp3"
+ffmpeg -i "$input_file" -ss $start_time -c copy "$output_file" -y
+echo "Chunk $i created: $output_file"
+
+# Clean up temporary files
+rm silence.txt silence_intervals.txt
+
+echo "Done!"
+

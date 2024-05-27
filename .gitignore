@@ -1,0 +1,13 @@
+*.mp3
+*.mp4
+*.m4a
+*.json
+.DS_Store
+.env
+python/.venv
+go/.env
+go/key.json
+.env
+__pycache__/
+translation/.env
+translation/myenv/

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+################################################################################
+# This script downloads the transcription result from the specified S3 bucket.
+# The script takes two arguments:
+# 1. The name of the transcription result file
+# 2. The name of the S3 bucket
+# The script downloads the transcription result from the specified S3 bucket.
+# The script requires the AWS CLI to be installed and configured.
+################################################################################
+
+# Check if the necessary arguments are provided
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <transcription.json> <s3_bucket>"
+    exit 1
+fi
+
+# Assign input and output file names
+output_file=$1
+s3_bucket=$2
+
+# Get the default region from AWS configuration
+region=$(aws configure get region)
+
+# Retrieve the transcription result
+aws s3 cp s3://$s3_bucket/$output_file $output_file
+
+# Check if transcription result is downloaded successfully
+if [ $? -eq 0 ]; then
+    echo "Transcription result saved to $output_file"
+else
+    echo "Failed to download transcription result."
+    exit 1
+fi
+
