@@ -35,8 +35,8 @@ sleep 5
 
 # Create input and output folders in the S3 bucket
 echo "Creating input and output folders in the S3 bucket"
-aws s3api put-object --bucket $BUCKET_NAME --key input/
-aws s3api put-object --bucket $BUCKET_NAME --key output/
+aws s3api put-object --bucket $BUCKET_NAME --key input/ > /dev/null
+aws s3api put-object --bucket $BUCKET_NAME --key output/ > /dev/null
 echo "Input and output folders created successfully."
 
 # Define the bucket policy allowing AWS Translate service to access the bucket
@@ -63,7 +63,7 @@ EOM
 
 # Apply the bucket policy
 echo "Applying bucket policy to allow AWS Translate service access"
-aws s3api put-bucket-policy --bucket $BUCKET_NAME --policy "$BUCKET_POLICY"
+aws s3api put-bucket-policy --bucket $BUCKET_NAME --policy "$BUCKET_POLICY" > /dev/null
 
 echo "Bucket $BUCKET_NAME created and policy applied successfully."
 

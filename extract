@@ -27,8 +27,14 @@ if [ ! -f "$input_file" ]; then
     exit 1
 fi
 
+# Check if output file already exists
+if [ -f "$output_file" ]; then
+    echo "Error: Output file '$output_file' already exists."
+    exit 1
+fi
+
 # Extract audio using ffmpeg
-ffmpeg -i "$input_file" -vn -acodec libmp3lame "$output_file"
+ffmpeg -i "$input_file" -vn -acodec libmp3lame "$output_file" &> /dev/null
 
 if [ $? -eq 0 ]; then
     echo "Audio extracted successfully to '$output_file'."
