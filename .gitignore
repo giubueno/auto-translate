@@ -4,3 +4,5 @@
 *.json
 .DS_Store
 *.txt
+.env
+python/.venv
