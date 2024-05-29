@@ -30,7 +30,7 @@ fi
 # Check if output file already exists
 if [ -f "$output_file" ]; then
     echo "Error: Output file '$output_file' already exists."
-    exit 1
+    exit 0
 fi
 
 # Extract audio using ffmpeg

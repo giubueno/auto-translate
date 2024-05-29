@@ -26,40 +26,13 @@ aws transcribe start-transcription-job \
     --media MediaFileUri="s3://$s3_bucket/$input_file" \
     --output-bucket $s3_bucket \
     --output-key $output_file \
-    --transcription-job-name transcribe-job-$(date +%s)
+    --transcription-job-name transcribe-job-$(date +%s) > /dev/null
 
 # Check if transcription job started successfully
 if [ $? -eq 0 ]; then
     echo "Transcription job started successfully."
+    exit 0
 else
     echo "Failed to start transcription job."
     exit 1
 fi
-
-# Wait until transcription job is completed
-while true; do
-    status=$(aws transcribe get-transcription-job --region $region --transcription-job-name transcribe-job-$(date +%s) --query 'TranscriptionJob.TranscriptionJobStatus' --output text)
-    if [ "$status" == "COMPLETED" ]; then
-        echo "Transcription completed successfully."
-        break
-    elif [ "$status" == "FAILED" ]; then
-        echo "Transcription failed."
-        exit 1
-    else
-        echo "Transcription job is still in progress..."
-        sleep 10
-    fi
-done
-
-# Retrieve the transcription result
-aws s3 cp s3://$s3_bucket/$output_file .
-
-# Check if transcription result is downloaded successfully
-if [ $? -eq 0 ]; then
-    echo "Transcription result saved to $output_file"
-    exit 0
-else
-    echo "Failed to download transcription result."
-    exit 1
-fi
-

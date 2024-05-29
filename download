@@ -23,7 +23,7 @@ s3_bucket=$2
 region=$(aws configure get region)
 
 # Retrieve the transcription result
-aws s3 cp s3://$s3_bucket/$output_file .
+aws s3 cp s3://$s3_bucket/$output_file $output_file
 
 # Check if transcription result is downloaded successfully
 if [ $? -eq 0 ]; then
