@@ -6,3 +6,4 @@
 *.txt
 .env
 python/.venv
+go/.env
