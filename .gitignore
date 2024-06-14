@@ -7,3 +7,5 @@
 .env
 python/.venv
 go/.env
+go/key.json
+.env
