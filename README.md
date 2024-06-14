@@ -1,7 +1,7 @@
 # Auto Translate
 A group of bash script, Python and Go code to translate the audio of videos from English to other languages using cloud services.
 
-## Objective
+## Mission
 Create a web application that allows users to connect to their Google Drive, fetch a video, transcribe the audio, translate the transcription into the desired languages, and generate audio using text-to-speech (TTS) for the translations.
 
 ## Running
