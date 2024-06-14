@@ -19,6 +19,8 @@ s3_bucket=$3
 # Get the default region from AWS configuration
 region=$(aws configure get region)
 
+job_name="transcribe-job-$(date +%s)"
+
 # Transcribe the MP3 file using AWS Transcribe
 aws transcribe start-transcription-job \
     --region $region \
@@ -26,11 +28,17 @@ aws transcribe start-transcription-job \
     --media MediaFileUri="s3://$s3_bucket/$input_file" \
     --output-bucket $s3_bucket \
     --output-key $output_file \
-    --transcription-job-name transcribe-job-$(date +%s) > /dev/null
+    --transcription-job-name $job_name > /dev/null
 
 # Check if transcription job started successfully
 if [ $? -eq 0 ]; then
     echo "Transcription job started successfully."
+    job_status=""
+    while [ "$job_status" != "COMPLETED" ]; do
+        job_status=$(aws transcribe get-transcription-job --region $region --transcription-job-name $job_name --query 'TranscriptionJob.TranscriptionJobStatus' --output text)
+        sleep 5
+    done
+    echo "Transcription job completed."
     exit 0
 else
     echo "Failed to start transcription job."
