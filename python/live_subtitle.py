@@ -6,8 +6,9 @@ from google.cloud import texttospeech
 from google.cloud import translate_v2 as translate
 from google.cloud import exceptions
 import os
+import argparse
 
-def audio_to_text(audio_file):
+def audio_to_text(audio_file, debug=False):
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_file) as source:
         audio = recognizer.record(source)
@@ -26,7 +27,7 @@ def record_audio():
     CHANNELS = 1
     RATE = 44100
     CHUNK = 1024
-    RECORD_SECONDS = 5
+    RECORD_SECONDS = 10
     current_time_epoch = int(time.time())
     OUTPUT_FILENAME = f"outputs/live/{current_time_epoch}_output.wav"
 
@@ -100,7 +101,7 @@ def execute(language="es-US", voice="es-US-Studio-B"):
             translated_text = translate_text(language, english_text)
             text = translated_text["translatedText"]
             print("T: " + text)
-            # speak(text, language, voice)
+            speak(text, language, voice)
         except exceptions.BadRequest as exc:
             os.system('clear')
         except:
@@ -109,5 +110,24 @@ def execute(language="es-US", voice="es-US-Studio-B"):
 # Spanish
 # execute(language="es-US", voice="es-US-Studio-B")
 
+# Parse the command line arguments
+parser = argparse.ArgumentParser(description="Description of your script")
+parser.add_argument("-l", "--language", help="Language", required=True)
+args = parser.parse_args()
+
+languages = {
+    "es": "es-US",
+    "en": "en-US",
+    "pt": "pt-BR",
+    "cn": "cmn-CN"
+}
+
+voices = {
+    "es": "es-US-Studio-B",
+    "en": "en-US-Standard-C",
+    "pt": "pt-BR-Neural2-B",
+    "cn": "cmn-CN-Standard-A"
+}
+
 # Portuguese
-execute(language="pt-BR", voice="pt-BR-Neural2-B")
+execute(language=languages[args.language], voice=voices[args.language])
