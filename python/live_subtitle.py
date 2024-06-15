@@ -94,6 +94,7 @@ def translate_text(target: str, text: str) -> dict:
     return result
 
 def execute(language="es-US", voice="es-US-Studio-B", debug=False):
+    os.system('clear')
     while True:
         try:
             file_path = record_audio()
