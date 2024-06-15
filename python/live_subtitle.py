@@ -14,7 +14,8 @@ def audio_to_text(audio_file, debug=False):
         audio = recognizer.record(source)
         try:
             text = recognizer.recognize_google(audio)
-            print("O: " + text)
+            if debug:
+                print("O: " + text)
             return text
         except sr.UnknownValueError:
             print("Could not understand the audio")
@@ -27,7 +28,7 @@ def record_audio():
     CHANNELS = 1
     RATE = 44100
     CHUNK = 1024
-    RECORD_SECONDS = 10
+    RECORD_SECONDS = 5
     current_time_epoch = int(time.time())
     OUTPUT_FILENAME = f"outputs/live/{current_time_epoch}_output.wav"
 
@@ -92,11 +93,11 @@ def translate_text(target: str, text: str) -> dict:
     result = translate_client.translate(text, target_language=target)
     return result
 
-def execute(language="es-US", voice="es-US-Studio-B"):
+def execute(language="es-US", voice="es-US-Studio-B", debug=False):
     while True:
         try:
             file_path = record_audio()
-            english_text = audio_to_text(file_path)
+            english_text = audio_to_text(file_path, debug=debug)
             os.system(f"rm {file_path}")
             translated_text = translate_text(language, english_text)
             text = translated_text["translatedText"]
@@ -113,6 +114,7 @@ def execute(language="es-US", voice="es-US-Studio-B"):
 # Parse the command line arguments
 parser = argparse.ArgumentParser(description="Description of your script")
 parser.add_argument("-l", "--language", help="Language", required=True)
+parser.add_argument("-d", "--debug", help="Debug", required=False, default=False)
 args = parser.parse_args()
 
 languages = {
@@ -129,5 +131,9 @@ voices = {
     "cn": "cmn-CN-Standard-A"
 }
 
+if args.language not in languages:
+    print("Language not supported")
+    exit()
+
 # Portuguese
-execute(language=languages[args.language], voice=voices[args.language])
+execute(language=languages[args.language], voice=voices[args.language], debug=args.debug)
