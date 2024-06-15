@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 import os
 from openai import OpenAI
+import argparse
 
 def split_text_to_chunks(file_path, chunk_size=4096):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -38,30 +39,41 @@ def merge_mp3_files(file_list, output_file):
     # Remove the temporary file
     os.remove("filelist.txt")
 
-def process_text(input_file_path):
-  client = OpenAI()
+    # remove the individual files
+    for filename in file_list:
+        os.system(f"rm {filename}")
 
-  # Example usage
-  chunks = split_text_to_chunks(input_file_path)
+def process_text(input_file_path, language="es"):
+    ''' Process the text in the input file and convert it to speech using OpenAI's API '''
+    client = OpenAI()
 
-  file_list = []
+    # Example usage
+    chunks = split_text_to_chunks(input_file_path)
 
-  # Print the chunks
-  for i, chunk in enumerate(chunks):
-    print(f"Chunk {i+1}:\n{chunk}\n{'-'*40}")
+    file_list = []
 
-    # Text to be converted to speech
-    with client.audio.speech.with_streaming_response.create(
-        model="tts-1-hd",
-        voice="nova",
-        input=chunk
-    ) as response:
-        speech_file_path = Path(__file__).parent / f"outputs/es/openai_{i}.mp3"
-        response.stream_to_file(speech_file_path)
-        file_list.append(speech_file_path)
+    # Print the chunks
+    for i, chunk in enumerate(chunks):
+        print(f"Chunk {i+1}:\n{chunk}\n{'-'*40}")
 
-    output_file = Path(__file__).parent / "outputs/es/es.mp3"
+        # Text to be converted to speech
+        with client.audio.speech.with_streaming_response.create(
+            model="tts-1-hd",
+            voice="nova",
+            input=chunk
+        ) as response:
+            speech_file_path = Path(__file__).parent / f"outputs/{language}/openai_{i}.mp3"
+            response.stream_to_file(speech_file_path)
+            file_list.append(speech_file_path)
+
+    output_file = Path(__file__).parent / f"outputs/{language}/{language}.mp3"
     merge_mp3_files(file_list, output_file)
 
-# process_text(Path(__file__).parent / "../output/es.en.txt")
-process_text(Path(__file__).parent.parent / "awscli/input/translations/es.20240616_en.txt")
+
+# Parse the command line arguments
+parser = argparse.ArgumentParser(description="Convert text to speech using OpenAI's API")
+parser.add_argument("-l", "--language", help="Language of the text", required=True)
+parser.add_argument("-f", "--file", help="Text file path", required=True)
+args = parser.parse_args()
+
+process_text(args.file, args.language)
