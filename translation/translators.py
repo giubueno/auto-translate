@@ -1,11 +1,23 @@
 import whisper
 import json
 
+class Transcription:
+    def __init__(self, transcription):
+        self.transcription = transcription
+        self.translated_text = None
+
+    def original_text(self):
+        return self.transcription["text"]
+    
+    def translated_segments(self):
+        return self.transcription["segments"]
+
 class AudioTranslator:
-    def __init__(self, audio_file_path, languages=["es", "de"], destination_folder="outputs"):
+    def __init__(self, audio_file_path, language="de", destination_folder="outputs"):
         self.audio_file_path = audio_file_path
-        self.languages = languages
+        self.language = language
         self.destination_folder = destination_folder
+        self.transcription = None
 
     def transcribe(self):
         ''' 
@@ -41,16 +53,15 @@ class AudioTranslator:
         model = whisper.load_model("base")
 
         # Transcribe the audio file
-        return model.transcribe(self.audio_file_path, word_timestamps=True)
-
+        result = model.transcribe(self.audio_file_path, word_timestamps=True)
+        self.transcription = Transcription(result)
+        return self.transcription
 
     def translate(self):
-        for language in self.languages:
-            print(f"Translating {self.audio_file_path} to {language}...")
+        print(f"Translating {self.audio_file_path} to {self.language}...")
 
     def text_to_speech(self):
-        for language in self.languages:
-            print(f"Converting text to speech in {language}...")
+        print(f"Converting text to speech in {self.language}...")
 
     def run(self):
         self.transcribe()

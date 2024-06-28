@@ -11,7 +11,7 @@ You can run this code using Python 3.
 Activate the Virtual Environment: Before installing dependencies, activate the virtual environment. On macOS and Linux, run:
 
 ```sh
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 On Windows, run:
@@ -24,6 +24,12 @@ To install all dependencies listed in requirements.txt, use the following comman
 
 ```sh
 pip install -r requirements.txt
+```
+
+In case you have problems with modules not found, try to alias the Python from your venv:
+
+```sh
+alias python=.venv/bin/python3
 ```
 
 ### Testing

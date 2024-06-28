@@ -14,8 +14,8 @@ class TestTranslators(unittest.TestCase):
         expected = "Surely goodness and mercy shall follow me."
         file_path = self.create_sample_audio(expected)
         translator = translators.AudioTranslator(file_path)
-        result = translator.transcribe()
-        actual = result["text"]
+        transcription = translator.transcribe()
+        actual = transcription.original_text()
         self.assertEqual(actual.strip(), expected)
 
 if __name__ == "__main__":
