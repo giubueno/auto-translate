@@ -69,7 +69,6 @@ def process_text(input_file_path, language="es"):
     output_file = Path(__file__).parent / f"outputs/{language}/{language}.mp3"
     merge_mp3_files(file_list, output_file)
 
-
 # Parse the command line arguments
 parser = argparse.ArgumentParser(description="Convert text to speech using OpenAI's API")
 parser.add_argument("-l", "--language", help="Language of the text", required=True)
