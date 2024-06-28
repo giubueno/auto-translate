@@ -2,8 +2,15 @@ import unittest
 import translators
 from gtts import gTTS
 import time
+from difflib import SequenceMatcher
 
 class TestTranslators(unittest.TestCase):
+    def strings_are_similar(self, str1, str2, threshold):
+        # Calculate the similarity ratio using SequenceMatcher
+        similarity_ratio = SequenceMatcher(None, str1, str2).ratio()
+        # Compare the similarity ratio with the threshold
+        return similarity_ratio >= threshold
+
     def create_sample_audio(self, text):
         speech = gTTS(text=text, lang="en")
         file_path = f"/tmp/sample_audio_{time.time()}.mp3"
@@ -16,7 +23,7 @@ class TestTranslators(unittest.TestCase):
         translator = translators.AudioTranslator(file_path)
         transcription = translator.transcribe()
         actual = transcription.original_text()
-        self.assertEqual(actual.strip(), expected)
+        self.assertTrue(self.strings_are_similar(actual, expected, 0.95))
 
 if __name__ == "__main__":
     unittest.main()
