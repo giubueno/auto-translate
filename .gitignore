@@ -3,7 +3,6 @@
 *.m4a
 *.json
 .DS_Store
-*.txt
 .env
 python/.venv
 go/.env
