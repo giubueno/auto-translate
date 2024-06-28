@@ -10,3 +10,5 @@ go/.env
 go/key.json
 .env
 __pycache__/
+translation/.env
+translation/.venv
