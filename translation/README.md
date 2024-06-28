@@ -8,6 +8,12 @@ You can run this code using Python 3.
 
 ### Dependencies
 
+If you don't have one already, create a virtual environment using:
+
+```sh
+python3 -m venv venv
+```
+
 Activate the Virtual Environment: Before installing dependencies, activate the virtual environment. On macOS and Linux, run:
 
 ```sh
