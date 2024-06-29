@@ -25,5 +25,14 @@ class TestTranslators(unittest.TestCase):
         actual = transcription.original_text()
         self.assertTrue(self.strings_are_similar(actual, expected, 0.95))
 
+    def test_translate(self):
+        original = "Surely goodness and mercy shall follow me."
+        expected = "Ciertamente la bondad y la misericordia me seguirán."
+        file_path = self.create_sample_audio(original)
+        translator = translators.AudioTranslator(file_path)
+        transcription = translator.transcribe()
+        actual = translator.translate()
+        self.assertTrue(self.strings_are_similar(actual, expected, 0.95))
+
 if __name__ == "__main__":
     unittest.main()

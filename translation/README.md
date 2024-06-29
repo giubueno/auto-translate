@@ -17,13 +17,14 @@ python3 -m venv venv
 Activate the Virtual Environment: Before installing dependencies, activate the virtual environment. On macOS and Linux, run:
 
 ```sh
-source .venv/bin/activate
+python3 -m venv myenv
+source myenv/bin/activate
 ```
 
 On Windows, run:
 
 ```sh
-.\venv\Scripts\activate
+.\myenv\Scripts\activate
 ```
 
 To install all dependencies listed in requirements.txt, use the following command:
@@ -32,10 +33,13 @@ To install all dependencies listed in requirements.txt, use the following comman
 pip install -r requirements.txt
 ```
 
-In case you have problems with modules not found, try to alias the Python from your venv:
+***Attention***
+We are using Open Whisper (Open source), which depends on NumPy < 2.x. You need to make sure that you have a 1.x version.
+
+For example:
 
 ```sh
-alias python=.venv/bin/python3
+pip install numpy==1.26.4
 ```
 
 ### Testing

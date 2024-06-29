@@ -1,5 +1,7 @@
 import whisper
 import json
+import boto3
+import numpy as np
 
 class Transcription:
     def __init__(self, transcription):
@@ -9,8 +11,14 @@ class Transcription:
     def original_text(self):
         return self.transcription["text"]
     
+    def set_translated_text(self, translated_text):
+        self.translated_text = translated_text
+    
     def translated_segments(self):
         return self.transcription["segments"]
+    
+    def source_language(self):
+        return self.transcription["language"]
 
 class AudioTranslator:
     def __init__(self, audio_file_path, language="de", destination_folder="outputs"):
@@ -50,7 +58,7 @@ class AudioTranslator:
         }
         '''    
         # Load the Whisper model
-        model = whisper.load_model("base")
+        model = whisper.load_model("medium")
 
         # Transcribe the audio file
         result = model.transcribe(self.audio_file_path, word_timestamps=True)
@@ -58,7 +66,22 @@ class AudioTranslator:
         return self.transcription
 
     def translate(self):
-        print(f"Translating {self.audio_file_path} to {self.language}...")
+        """
+        Translate text from source language to target language using AWS Translate.
+
+        :param text: Text to translate
+        :param source_language: Source language code (e.g., 'en' for English)
+        :param target_language: Target language code (e.g., 'es' for Spanish)
+        :return: Translated text
+        """
+        translate = boto3.client(service_name='translate', region_name='us-east-1', use_ssl=True)
+        text = self.transcription.original_text()
+        source_language = self.transcription.source_language()
+        target_language = self.language
+        result = translate.translate_text(Text=text, SourceLanguageCode=source_language, TargetLanguageCode=target_language)
+        translated_text = result.get('TranslatedText')
+        self.transcription.set_translated_text(translated_text)
+        return translated_text
 
     def text_to_speech(self):
         print(f"Converting text to speech in {self.language}...")
