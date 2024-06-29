@@ -11,3 +11,4 @@ go/key.json
 __pycache__/
 .env
 myenv/
+outputs/

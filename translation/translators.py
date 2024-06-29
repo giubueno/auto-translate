@@ -12,6 +12,9 @@ class Segment:
 
     def original_text(self):
         return self.original["text"]
+    
+    def start(self):
+        return self.original["start"]
 
 class Transcription:
     def __init__(self, transcription):
@@ -100,11 +103,14 @@ class AudioTranslator:
     def text_to_speech(self):
         client = OpenAI()
         file_list = []
+        file_names = []
 
         # make sure all the folders exist
         os.makedirs(f"{self.destination_folder}/{self.language}", exist_ok=True)
 
         segments = self.transcription.translated_segments
+
+        output_folder_path = f"{self.destination_folder}/{self.language}"
 
         # Print the chunks
         for segment in segments:
@@ -116,10 +122,20 @@ class AudioTranslator:
                 voice="echo",
                 input=chunk
             ) as response:
-                timestamp = int(time.time())
-                speech_file_path = Path(__file__).parent / f"outputs/{self.language}/openai_{timestamp}.mp3"
+                file_name = f"{segment.start()}.mp3"
+                speech_file_path = f"{output_folder_path}/{file_name}"
                 response.stream_to_file(speech_file_path)
                 file_list.append(speech_file_path)
+                file_names.append(file_name)
+
+        if os.path.exists(f"{output_folder_path}/filelist.txt"):
+            os.remove(f"{output_folder_path}/filelist.txt")
+
+        # Create a temporary file to hold the list of files
+        with open(f"{output_folder_path}/filelist.txt", "w") as file:
+            for filename in file_names:
+                file.write(f"file '{filename}'\n")        
+        
         return file_list
 
     def run(self):
