@@ -3,7 +3,7 @@ import boto3
 from pathlib import Path
 import os
 from openai import OpenAI
-import time
+from pydub import AudioSegment
 
 class Segment:
     def __init__(self, text, segment):
@@ -137,6 +137,39 @@ class AudioTranslator:
                 file.write(f"file '{filename}'\n")        
         
         return file_list
+
+    def join_files(output_file, file_list):
+        # Create an empty AudioSegment
+        combined = AudioSegment.silent(duration=0)
+
+        # Sort the file list based on start time
+        file_list.sort(key=lambda x: x['start'])
+
+        # Calculate the end time of the last added audio
+        last_end_time = 0
+
+        for file_info in file_list:
+            # Load the audio file
+            audio = AudioSegment.from_mp3(file_info['file'])
+
+            # Calculate padding duration
+            pad_duration = file_info['start'] - last_end_time
+
+            if pad_duration > 0:
+                # Add silence if there's a gap
+                combined += AudioSegment.silent(duration=pad_duration)
+            elif pad_duration < 0:
+                # Trim the combined audio if there's an overlap
+                combined = combined[:file_info['start']]
+
+            # Add the audio to the combined track
+            combined += audio
+
+            # Update the last end time
+            last_end_time = file_info['start'] + len(audio)
+
+        # Export the final combined audio
+        combined.export(output_file, format="mp3")
 
     def run(self):
         self.transcribe()
