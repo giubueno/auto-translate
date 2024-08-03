@@ -11,4 +11,4 @@ go/key.json
 __pycache__/
 translation/.env
 translation/myenv/
- inputs/texts/
+translation/inputs/texts/
