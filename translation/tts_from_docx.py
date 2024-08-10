@@ -62,7 +62,6 @@ def execute(doc_path, language="de"):
     # concatenate all the mp3 files
     os.system(f"ffmpeg -f concat -safe 0 -i {files_path} -c copy outputs/{language}/output.mp3")
 
-
 parser = argparse.ArgumentParser(description="Translate the texts in the docx file informed to the target language and save the files into outputs/{languae}")
 parser.add_argument("-l", "--language", help="Language of the text", required=True)
 parser.add_argument("-f", "--file", help="Original text file path", required=True)
