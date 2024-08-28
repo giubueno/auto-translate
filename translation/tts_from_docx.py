@@ -29,7 +29,7 @@ def execute(doc_path, language="de"):
     open(files_path, 'w').close()
 
     # Process each paragraph in the document
-    table = doc.tables[1]
+    table = doc.tables[0]
 
     row_num = -1
     minutes = 0
@@ -38,9 +38,6 @@ def execute(doc_path, language="de"):
     for row in table.rows:
         row_num += 1
         
-        if row_num == 0:
-            continue
-
         first_cell = row.cells[0]
         paragraph = first_cell.paragraphs[0]
         
