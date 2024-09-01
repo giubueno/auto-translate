@@ -18,6 +18,8 @@ def get_content(row, language="de"):
 
     if language != "de":
         content = translate_text(content, source_language='en', target_language=language)
+
+    print(content)
     
     return content
 
@@ -31,6 +33,9 @@ def execute(doc_path, language="de"):
     # Process each paragraph in the document
     table = doc.tables[0]
 
+    print(f"Document has {len(doc.tables)} tables")
+    print(f"Table has {len(table.rows)} rows")
+
     row_num = -1
     minutes = 0
     seconds = 0
@@ -43,7 +48,7 @@ def execute(doc_path, language="de"):
         
         # check if the paragraph is similar to (01:29): or (01:29:00): using regex
         # parse something similar to (00:01): using regex
-        match = re.match(r"\((\d{2}):(\d{2})\):", paragraph.text)        
+        match = re.match(r"\((\d{2}):(\d{2})\)", paragraph.text)        
         if match:
             minutes = int(match.group(1))
             seconds = int(match.group(2))
@@ -52,7 +57,14 @@ def execute(doc_path, language="de"):
             path = f"{minutes_str}:{seconds_str}"
             print(path)
             content = get_content(row, language)
-            speak(minutes, seconds, content, language=language, files_path=files_path)
+            try:
+                speak(minutes, seconds, content, language=language, files_path=files_path)
+            except Exception as e:
+                print(e)
+        else:
+            print(f"Row {row_num} is not a time")
+            print(paragraph.text)
+            print("")
 
         # second_cell = row.cells[1]
         # 
