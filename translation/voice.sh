@@ -3,13 +3,19 @@
 source myenv/bin/activate
 
 # Use export for environment variables in bash
-export DATE_FILE="20250525"
+export DATE_FILE="20250615"
 export DOC_LANGUAGE=de
-export SPEAKER_LANGUAGE="pt-br"
 
-python3 tts_from_docx.py -f ./inputs/$DATE_FILE.docx -l $SPEAKER_LANGUAGE -s $DOC_LANGUAGE
+LANGUAGES=("pt-br" "de" "es")
 
-# rename the file
-mv ./outputs/$SPEAKER_LANGUAGE/output.mp3 ./outputs/$SPEAKER_LANGUAGE/$SPEAKER_LANGUAGE$DATE_FILE.mp3
+# for each language in LANGUAGES, run the script
+for language in "${LANGUAGES[@]}"; do
+    echo "Running for $language"
+
+    python3 tts_from_docx.py -f ./inputs/$DATE_FILE.docx -l $language -s $DOC_LANGUAGE
+
+    # rename the file
+    mv ./outputs/$language/$language_synced.mp3 ./outputs/$language/$language$DATE_FILE.mp3
+done
 
 # upload the file to my google drive

@@ -1,7 +1,17 @@
 from pathlib import Path
 from openai import OpenAI
 
-def voice_over(minutes, seconds, text, language="es", voice="echo", files_path="outputs/es/output.mp3"):
+class VoiceOverResult:
+    def __init__(self, minutes, seconds, text, language="es", voice="echo", files_path="outputs/es/output.mp3"):
+        self.minutes = minutes
+        self.seconds = seconds
+        self.text = text
+        self.language = language
+        self.voice = voice
+        self.files_path = files_path
+
+
+def voice_over(minutes, seconds, text, language="es", voice="echo", files_path="outputs/es/output.mp3") -> VoiceOverResult:
     client = OpenAI()
 
     output_path = Path(f"outputs/{language}")
@@ -27,3 +37,7 @@ def voice_over(minutes, seconds, text, language="es", voice="echo", files_path="
     # Append the file path to the files.txt
     with open(files_path, 'a') as file:
         file.write(f"file '{speech_file_path}'\n")
+
+    result = VoiceOverResult(minutes, seconds, text, language, voice, speech_file_path)
+
+    return result

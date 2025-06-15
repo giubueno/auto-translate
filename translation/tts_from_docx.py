@@ -1,9 +1,10 @@
 from docx import Document
 import re
-from utils.tts import voice_over
+from utils.tts import voice_over, VoiceOverResult
 from utils.translation import translate_text
 import os
 import argparse
+from audio_builder import AudioBuilder
 
 def execute(doc_path, language="de", source_language="de"):
     files_path = f"outputs/{language}/files.txt"
@@ -15,6 +16,10 @@ def execute(doc_path, language="de", source_language="de"):
     open(files_path, 'w').close()
 
     path = ""
+
+    voice_over_results: list[VoiceOverResult] = []
+
+    audio_builder = AudioBuilder(language=language)
     
     # read each paragraph in the document
     for paragraph in doc.paragraphs:
@@ -37,11 +42,16 @@ def execute(doc_path, language="de", source_language="de"):
         else:
             content = speech_text
         try:
-            voice_over(minutes, seconds, content, language=language, files_path=files_path)
+            voice_over_result = voice_over(minutes, seconds, content, language=language, files_path=files_path)
+            voice_over_results.append(voice_over_result)
             print("content: ", content)
             print("\n")
+
         except Exception as e:
             print(e)
+
+    # build the audio
+    audio_builder.build(voice_over_results)
 
     # concatenate all the mp3 files
     os.system(f"ffmpeg -f concat -safe 0 -i {files_path} -c copy outputs/{language}/output.mp3")
