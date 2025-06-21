@@ -1,6 +1,6 @@
 # Translation
 
-Code used to translate audios using Whisper to transcribe the text, AWS Translate and Open AI to transform the translated text into speech.
+Code used to translate audios using Whisper to transcribe text, OpenAI to translate the text and convert the translated text into speech.
 
 ## Running
 
@@ -17,14 +17,14 @@ python3 -m venv venv
 Activate the Virtual Environment: Before installing dependencies, activate the virtual environment. On macOS and Linux, run:
 
 ```sh
-python3 -m venv myenv
-source myenv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 On Windows, run:
 
 ```sh
-.\myenv\Scripts\activate
+.\venv\Scripts\activate
 ```
 
 To install all dependencies listed in requirements.txt, use the following command:

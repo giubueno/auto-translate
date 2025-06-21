@@ -1,9 +1,11 @@
 #! /bin/bash
 
-source myenv/bin/activate
+source venv/bin/activate
+
+pip install -r requirements.txt
 
 # Use export for environment variables in bash
-export DATE_FILE="20250615"
+export DATE_FILE="20250622-1"
 export DOC_LANGUAGE=de
 
 LANGUAGES=("pt-br" "de" "es")
