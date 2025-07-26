@@ -7,6 +7,8 @@ import argparse
 from audio_builder import AudioBuilder
 
 def execute(doc_path, language="de", source_language="de"):
+    os.makedirs(f"outputs/{language}", exist_ok=True)
+
     files_path = f"outputs/{language}/files.txt"
     doc = Document(doc_path)
 
@@ -42,19 +44,15 @@ def execute(doc_path, language="de", source_language="de"):
         else:
             content = speech_text
         try:
+            print("content: ", content)
             voice_over_result = voice_over(minutes, seconds, content, language=language, files_path=files_path)
             voice_over_results.append(voice_over_result)
-            print("content: ", content)
-            print("\n")
 
         except Exception as e:
             print(e)
 
     # build the audio
     audio_builder.build(voice_over_results)
-
-    # concatenate all the mp3 files
-    os.system(f"ffmpeg -f concat -safe 0 -i {files_path} -c copy outputs/{language}/output.mp3")
 
 parser = argparse.ArgumentParser(description="Translate the texts in the docx file informed to the target language and save the files into outputs/{languae}")
 parser.add_argument("-l", "--language", help="Language of the text", required=True)

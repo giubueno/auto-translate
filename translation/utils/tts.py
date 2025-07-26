@@ -30,7 +30,8 @@ def voice_over(minutes, seconds, text, language="es", voice="echo", files_path="
         with client.audio.speech.with_streaming_response.create(
             model="tts-1",
             voice=voice,
-            input=text       
+            input=text,
+            speed=1.1
         ) as response:
             response.stream_to_file(speech_file_path)
         
