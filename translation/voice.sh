@@ -5,7 +5,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Use export for environment variables in bash
-export DATE_FILE="20250720"
+export DATE_FILE="20250727"
 export DOC_LANGUAGE=de
 
 LANGUAGES=("pt-br" "de" "es")
