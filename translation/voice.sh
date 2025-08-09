@@ -43,6 +43,12 @@ if [ -z "$DATE_FILE" ]; then
     exit 1
 fi
 
+# check if the input file exists
+if [ ! -f "./inputs/$DATE_FILE.docx" ]; then
+    echo "Error: Input file ./inputs/$DATE_FILE.docx does not exist"
+    exit 1
+fi
+
 # for each language in LANGUAGES, run the script
 for language in "${LANGUAGES[@]}"; do
     echo "Running for $language"
