@@ -45,7 +45,7 @@ if [ -z "$DOC_LANGUAGE" ]; then
     DOC_LANGUAGE="de"
 fi
 
-LANGUAGES=("pt-br" "de" "es")
+LANGUAGES=("de" "es")
 
 for language in "${LANGUAGES[@]}"; do
     # create a folder for the date
