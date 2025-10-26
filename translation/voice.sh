@@ -59,7 +59,7 @@ done
 for language in "${LANGUAGES[@]}"; do
     echo "Running for $language"
 
-    python3 tts_from_docx.py -f "$DOCX_FILE" -l $language -s $DOC_LANGUAGE
+    python3 tts_from_docx.py -f "$DOCX_FILE" -l $language -s $DOC_LANGUAGE 
     if [ $? -ne 0 ]; then
         echo "Error: Failed to run the script"
         exit 1

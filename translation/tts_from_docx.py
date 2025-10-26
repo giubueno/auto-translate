@@ -39,7 +39,7 @@ def execute(doc_path, language="de", source_language="de"):
             print("time: ", path)
             continue
 
-        if language != "de":           
+        if language != source_language:
             content = translate_text(speech_text, source_language=source_language, target_language=language)
         else:
             content = speech_text
