@@ -2,9 +2,9 @@ import argparse
 import re
 import time
 from pathlib import Path
-import boto3
 from openai import OpenAI
 import os
+from utils.translation import translate_text
 
 def speak(minutes, seconds, text, language="es", voice="echo", files_path="outputs/es/output.mp3"):
     client = OpenAI()
@@ -29,11 +29,6 @@ def speak(minutes, seconds, text, language="es", voice="echo", files_path="outpu
     # Append the file path to the files.txt
     with open(files_path, 'a') as file:
         file.write(f"file '{speech_file_path}'\n")
-
-def translate_text(text, source_language='en', target_language='es'):
-    translate = boto3.client(service_name='translate', region_name='us-east-1', use_ssl=True)
-    result = translate.translate_text(Text=text, SourceLanguageCode=source_language, TargetLanguageCode=target_language)
-    return result.get('TranslatedText')
 
 def execute(language, original_file_path):
     # create an empty mp3 file

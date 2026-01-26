@@ -1,7 +1,5 @@
 annotated-types
 anyio
-boto3
-botocore
 certifi
 charset-normalizer
 click
@@ -33,7 +31,6 @@ python-dateutil
 rapidfuzz
 regex
 requests
-s3transfer
 semantic-version
 setuptools
 setuptools-rust

@@ -1,20 +1,7 @@
 import argparse
 from pathlib import Path
 import os
-import boto3
-
-def translate_text(text, source_language='en', target_language='es'):
-    """
-    Translate text from source language to target language using AWS Translate.
-
-    :param text: Text to translate
-    :param source_language: Source language code (e.g., 'en' for English)
-    :param target_language: Target language code (e.g., 'es' for Spanish)
-    :return: Translated text
-    """
-    translate = boto3.client(service_name='translate', region_name='us-east-1', use_ssl=True)
-    result = translate.translate_text(Text=text, SourceLanguageCode=source_language, TargetLanguageCode=target_language)
-    return result.get('TranslatedText')
+from utils.translation import translate_text
 
 def split_text_to_chunks(file_path, chunk_size=4096):
     chunks = []

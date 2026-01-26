@@ -1,9 +1,9 @@
 import whisper
-import boto3
 from pathlib import Path
 import os
 from openai import OpenAI
 from pydub import AudioSegment
+from utils.translation import translate_text as openai_translate
 
 class Segment:
     def __init__(self, text, segment):
@@ -86,20 +86,15 @@ class AudioTranslator:
 
     def translate(self):
         """
-        Translate text from source language to target language using AWS Translate.
+        Translate text from source language to target language using OpenAI.
 
-        :param text: Text to translate
-        :param source_language: Source language code (e.g., 'en' for English)
-        :param target_language: Target language code (e.g., 'es' for Spanish)
         :return: Translated text
         """
-        translate = boto3.client(service_name='translate', region_name='us-east-1', use_ssl=True)
         for _, segment in enumerate(self.transcription.segments):
             text = segment["text"]
             source_language = self.transcription.source_language()
             target_language = self.language
-            result = translate.translate_text(Text=text, SourceLanguageCode=source_language, TargetLanguageCode=target_language)
-            translated_text = result.get('TranslatedText')
+            translated_text = openai_translate(text, source_language, target_language)
             self.transcription.add_translated_segment(translated_text, segment)
         return self.transcription.translated_text
 

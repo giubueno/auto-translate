@@ -1,6 +1,6 @@
 # Translation
 
-Code used to translate audios using Whisper to transcribe text, OpenAI to translate the text and convert the translated text into speech.
+Code used to translate audios using Whisper to transcribe text, LM Studio (local LLM) to translate the text, and OpenAI or Chatterbox for text-to-speech.
 
 ## Running
 
@@ -47,13 +47,12 @@ pip install numpy==1.26.4
 This project uses several external services that require API keys and credentials. Create a `.env` file in the root directory with the following variables:
 
 ```sh
-# OpenAI API Key (required for text-to-speech and translation)
-OPENAI_API_KEY=your_openai_api_key_here
+# LM Studio Configuration (for translation)
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
+LMSTUDIO_MODEL=qwen/qwen3-vl-8b:2
 
-# AWS Credentials (required for AWS Translate and Transcribe services)
-AWS_ACCESS_KEY_ID=your_aws_access_key_id
-AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_DEFAULT_REGION=us-east-1
+# OpenAI API Key (required for text-to-speech)
+OPENAI_API_KEY=your_openai_api_key_here
 
 # Google Cloud Credentials (optional, for Google Cloud services)
 GOOGLE_APPLICATION_CREDENTIALS=path/to/your/google-credentials.json
@@ -64,20 +63,18 @@ GOOGLE_GEMINI_API_KEY=your_gemini_api_key_here
 
 #### How to obtain credentials:
 
-1. **OpenAI API Key:**
+1. **LM Studio (for translation):**
+   - Download and install [LM Studio](https://lmstudio.ai/)
+   - Download a model (default: `qwen/qwen3-vl-8b:2`)
+   - Start the local server (default port: 1234)
+   - The API is OpenAI-compatible and runs at `http://localhost:1234/v1`
+   - No API key required for local usage
+
+2. **OpenAI API Key (for text-to-speech):**
    - Sign up at [OpenAI Platform](https://platform.openai.com/)
    - Navigate to API Keys section
    - Create a new API key
    - Add billing information (required for API usage)
-
-2. **AWS Credentials:**
-   - Create an AWS account at [AWS Console](https://aws.amazon.com/)
-   - Create an IAM user with permissions for:
-     - Amazon Translate
-     - Amazon Transcribe
-     - Amazon S3 (if using transcription features)
-   - Generate Access Key ID and Secret Access Key
-   - Ensure the user has appropriate permissions for the services
 
 3. **Google Cloud Credentials (optional):**
    - Set up a Google Cloud project
