@@ -11,4 +11,5 @@ go/key.json
 __pycache__/
 translation/.env
 translation/myenv/
-translation/inputs/texts/
+translation/inputs/texts/_bmad/
+.claude
