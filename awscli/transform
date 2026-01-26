@@ -1,8 +1,0 @@
-#!/bin/bash
-
-TRANSCRIPTION_FILE_NAME=$1
-TRANSLATION_FILE_NAME=$2
-
-touch $TRANSLATION_FILE_NAME
-
-cat $TRANSCRIPTION_FILE_NAME | jq -r '.results.transcripts[0].transcript' > $TRANSLATION_FILE_NAME
