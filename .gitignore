@@ -12,4 +12,6 @@ __pycache__/
 translation/.env
 translation/myenv/
 translation/inputs/texts/_bmad/
-.claude
+.claude/
+_bmad/
+.cursor/
