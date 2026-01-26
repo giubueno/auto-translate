@@ -211,3 +211,137 @@ outputs/
 3. **File not found:** Check that the DOCX file exists in `inputs/` directory
 4. **API rate limits:** The script includes delays to avoid rate limiting
 5. **Virtual environment issues:** Ensure `venv/bin/activate` exists and is accessible
+
+## Voice Cloning Pipeline
+
+The voice cloning pipeline uses **Chatterbox TTS** to clone a speaker's voice from a video and generate translated speech in multiple languages.
+
+### Features
+
+- **Voice Cloning:** Extracts and clones the speaker's voice from source video
+- **Local Processing:** Uses Whisper for transcription (no cloud API needed)
+- **Multi-language Support:** Supports 23+ languages including ar, da, de, el, en, es, fi, fr, he, hi, it, ja, ko, ms, nl, no, pl, pt, ru, sv, sw, tr, zh
+- **Parallel Translation:** Speeds up processing with concurrent translation workers
+- **Two Output Modes:**
+  - **Time-synchronized:** Preserves original video timing (for dubbing)
+  - **Sequential:** Concatenates audio with configurable gaps (for podcasts/audiobooks)
+
+### Prerequisites
+
+Install Chatterbox TTS and its dependencies:
+
+```sh
+pip install chatterbox-tts
+```
+
+Ensure FFmpeg is installed for audio processing:
+
+```sh
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt install ffmpeg
+```
+
+### Usage
+
+#### Shell Script
+
+```sh
+# Make executable (first time only)
+chmod +x voice_clone.sh
+
+# Basic usage - time-synchronized output (for video dubbing)
+./voice_clone.sh /path/to/video.mp4 -l de -s en
+
+# Sequential mode with 1-second gaps (for podcasts/audiobooks)
+./voice_clone.sh /path/to/video.mp4 -l de --sequential -g 1000
+
+# Maximum speed with 8 parallel translation workers
+./voice_clone.sh /path/to/video.mp4 -l fr --sequential -w 8
+
+# Specify device (cuda, mps, or cpu)
+./voice_clone.sh /path/to/video.mp4 -l es -d cuda
+```
+
+#### Python Script
+
+```sh
+# Time-synchronized (default)
+python3 voice_clone_pipeline.py -v video.mp4 -l de -s en
+
+# Sequential with 1-second gaps
+python3 voice_clone_pipeline.py -v video.mp4 -l de --sequential -g 1000
+
+# Full options
+python3 voice_clone_pipeline.py -v video.mp4 -l de -s en --sequential -g 1000 -w 4 -d cuda
+```
+
+### Command-Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-v, --video` | Path to source video file (required) | - |
+| `-l, --language` | Target language code | `de` |
+| `-s, --source` | Source language code | `en` |
+| `-o, --output` | Output directory | `outputs` |
+| `-m, --model` | Whisper model size (tiny, base, small, medium, large) | `base` |
+| `-d, --device` | Device for Chatterbox (cuda, mps, cpu) | auto-detect |
+| `--sequential` | Concatenate audio with gaps instead of time-synced overlay | disabled |
+| `-g, --gap` | Gap in milliseconds between chunks in sequential mode | `1000` |
+| `-w, --workers` | Number of parallel workers for translation | `4` |
+
+### Output Modes
+
+#### Time-Synchronized Mode (Default)
+
+Best for **video dubbing**. Audio segments are placed at their original timestamps, maintaining sync with the source video.
+
+```
+outputs/{lang}/{lang}_synced.mp3
+```
+
+#### Sequential Mode
+
+Best for **podcasts, audiobooks, or standalone audio**. Audio segments are concatenated with configurable silence gaps between them.
+
+```
+outputs/{lang}/{lang}_sequential.mp3
+```
+
+### Output Structure
+
+```
+outputs/
+└── de/
+    ├── 0000.mp3          # Individual segment at 00:00
+    ├── 0015.mp3          # Individual segment at 00:15
+    ├── 0032.mp3          # Individual segment at 00:32
+    ├── files.txt         # Manifest of generated files
+    ├── de_synced.mp3     # Time-synchronized output
+    └── de_sequential.mp3 # Sequential output (if --sequential used)
+```
+
+### Pipeline Steps
+
+1. **Extract Audio:** Extracts audio track from source video
+2. **Initialize Voice Cloner:** Loads Chatterbox TTS model
+3. **Transcribe:** Uses Whisper to transcribe audio into segments
+4. **Translate (Parallel):** Translates all segments concurrently for speed
+5. **Generate Speech:** Creates voice-cloned speech for each segment
+6. **Build Output:** Merges segments into final audio file
+
+### Performance Tips
+
+- **GPU Acceleration:** Use `-d cuda` on NVIDIA GPUs for faster TTS generation
+- **Parallel Workers:** Increase `-w` value on multi-core systems (default: 4)
+- **Whisper Model:** Use `tiny` or `base` for faster transcription, `large` for accuracy
+- **Skip Regeneration:** Existing segment files are skipped automatically
+
+### Troubleshooting
+
+1. **CUDA out of memory:** Use `-d cpu` or a smaller Whisper model
+2. **MPS issues on Mac:** The pipeline defaults to CPU for MPS compatibility
+3. **Slow processing:** Increase parallel workers with `-w 8` or higher
+4. **Missing audio:** Ensure FFmpeg is installed and in PATH

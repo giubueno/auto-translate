@@ -49,3 +49,5 @@ python-docx
 moviepy
 google-generativeai
 audioop-lts
+chatterbox-tts
+python-dotenv
