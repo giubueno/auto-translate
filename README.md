@@ -6,10 +6,8 @@ Create a web application that allows users to connect to their Google Drive, fet
 
 ## Running
 
-1. Create a bucket to upload the audio file and the save its transcription.
-2. Extract the audio from the video (locally).
-3. Upload the audio to AWS.
-4. Transcribe the audio.
-5. Translate the transcription.
-6. Text to speech using OpenAI.
+1. Extract the audio from the video (locally).
+2. Transcribe the audio using Whisper (locally).
+3. Translate the transcription using OpenAI or Google Gemini.
+4. Text to speech using OpenAI or Chatterbox TTS (for voice cloning).
 
