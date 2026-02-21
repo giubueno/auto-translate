@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import translators
 from gtts import gTTS
 import time
@@ -28,16 +29,20 @@ class TestTranslators(unittest.TestCase):
         actual = transcription.original_text()
         self.assertTrue(self.strings_are_similar(actual, expected, 0.95))
 
-    def test_translate(self):
+    @patch("translators.translate_text", return_value="Sicherlich werden mir Güte und Barmherzigkeit folgen.")
+    def test_translate(self, mock_translate):
         original = "Surely goodness and mercy shall follow me."
         expected = "Sicherlich werden mir Güte und Barmherzigkeit folgen."
         file_path = self.create_sample_audio(original)
         translator = translators.AudioTranslator(file_path)
-        transcription = translator.transcribe()
+        translator.transcribe()
         actual = translator.translate()
         self.assertTrue(self.strings_are_similar(actual, expected, 0.95))
+        mock_translate.assert_called_once()
 
-    def test_text_to_speech(self):
+    @patch("translators.translate_text", return_value="Sicherlich werden mir Güte und Barmherzigkeit folgen.")
+    @patch("translators.ChatterboxVoiceCloner")
+    def test_text_to_speech(self, mock_cloner_cls, mock_translate):
         expected = "Surely goodness and mercy shall follow me."
         file_path = self.create_sample_audio(expected)
         translator = translators.AudioTranslator(file_path)

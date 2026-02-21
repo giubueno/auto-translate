@@ -45,6 +45,6 @@ urllib3
 python-docx
 moviepy
 google-generativeai
-audioop-lts
+# audioop-lts (Python 3.13+ only; 3.11 has stdlib audioop)
 chatterbox-tts
 python-dotenv
