@@ -125,16 +125,14 @@ def run_pipeline(video_path, target_language="de", source_language="en",
         # Sort by original order
         translated_segments.sort(key=lambda x: x['index'])
 
-        # Step 5: Generate speech for each segment (sequential - GPU bound)
-        print(f"\n[Step 5] Generating speech with cloned voice...")
+        # Step 5: Generate speech for each segment in parallel
+        print(f"\n[Step 5] Generating speech with cloned voice ({parallel_workers} workers)...")
         voice_over_results = []
 
-        for seg in translated_segments:
+        def generate_speech_segment(seg):
             print(f"\nSegment {seg['index'] + 1}/{len(segments)} [{seg['minutes']:02d}:{seg['seconds']:02d}]")
             print(f"  Text: {seg['translated_text'][:50]}{'...' if len(seg['translated_text']) > 50 else ''}")
-
-            # Generate speech with cloned voice
-            result = voice_over_chatterbox(
+            return voice_over_chatterbox(
                 minutes=seg['minutes'],
                 seconds=seg['seconds'],
                 text=seg['translated_text'],
@@ -143,7 +141,11 @@ def run_pipeline(video_path, target_language="de", source_language="en",
                 files_path=str(files_path),
                 cloner=cloner
             )
-            voice_over_results.append(result)
+
+        with ThreadPoolExecutor(max_workers=parallel_workers) as executor:
+            futures = {executor.submit(generate_speech_segment, seg): seg for seg in translated_segments}
+            for future in as_completed(futures):
+                voice_over_results.append(future.result())
 
         # Step 6: Build audio output
         mode_desc = "sequential" if sequential else "synchronized"

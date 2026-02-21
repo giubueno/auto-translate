@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from docx import Document
 import re
 from utils.tts import voice_over, VoiceOverResult
@@ -6,7 +8,7 @@ import os
 import argparse
 from audio_builder import AudioBuilder
 
-def execute(doc_path, language="de", source_language="de"):
+def execute(doc_path, language="de", source_language="de", workers=4):
     os.makedirs(f"outputs/{language}", exist_ok=True)
 
     files_path = f"outputs/{language}/files.txt"
@@ -17,13 +19,15 @@ def execute(doc_path, language="de", source_language="de"):
     # Create an empty list of files
     open(files_path, 'w').close()
 
-    path = ""
-
     voice_over_results: list[VoiceOverResult] = []
 
     audio_builder = AudioBuilder(language=language)
-    
-    # read each paragraph in the document
+
+    # First pass: collect all segments with timestamps and translated text
+    segments = []
+    minutes = 0
+    seconds = 0
+
     for paragraph in doc.paragraphs:
         speech_text = paragraph.text
         if speech_text == "":
@@ -43,13 +47,23 @@ def execute(doc_path, language="de", source_language="de"):
             content = translate_text(speech_text, source_language=source_language, target_language=language)
         else:
             content = speech_text
-        try:
-            print("content: ", content)
-            voice_over_result = voice_over(minutes, seconds, content, language=language, files_path=files_path)
-            voice_over_results.append(voice_over_result)
 
-        except Exception as e:
-            print(e)
+        segments.append({'minutes': minutes, 'seconds': seconds, 'content': content})
+
+    # Generate audio in parallel
+    print(f"Generating audio for {len(segments)} segments with {workers} workers...")
+
+    def generate_audio(seg):
+        print("content: ", seg['content'])
+        return voice_over(seg['minutes'], seg['seconds'], seg['content'], language=language, files_path=files_path)
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(generate_audio, seg): seg for seg in segments}
+        for future in as_completed(futures):
+            try:
+                voice_over_results.append(future.result())
+            except Exception as e:
+                print(e)
 
     # build the audio
     audio_builder.build(voice_over_results)
@@ -58,5 +72,6 @@ parser = argparse.ArgumentParser(description="Translate the texts in the docx fi
 parser.add_argument("-l", "--language", help="Language of the text", required=True)
 parser.add_argument("-f", "--file", help="Original text file path", required=True)
 parser.add_argument("-s", "--source_language", help="Source language of the text", required=False, default="de")
+parser.add_argument("-w", "--workers", type=int, default=4, help="Number of parallel workers for audio generation (default: 4)")
 args = parser.parse_args()
-execute(args.file, args.language, args.source_language)
+execute(args.file, args.language, args.source_language, args.workers)

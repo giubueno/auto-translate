@@ -1,3 +1,5 @@
+import threading
+
 import torch
 import torchaudio as ta
 from pathlib import Path
@@ -82,6 +84,7 @@ class ChatterboxVoiceCloner:
         self._model = None
         self._multilingual_model = None
         self._patched = False
+        self._lock = threading.Lock()
         print(f"Chatterbox will use device: {self.device}")
 
     def _ensure_patched(self):
@@ -121,26 +124,27 @@ class ChatterboxVoiceCloner:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Use multilingual model for non-English languages
-        if language != "en":
-            wav = self.multilingual_model.generate(
-                text,
-                audio_prompt_path=str(audio_prompt_path),
-                language_id=language
-            )
-            sample_rate = self.multilingual_model.sr
-        else:
-            wav = self.model.generate(
-                text,
-                audio_prompt_path=str(audio_prompt_path)
-            )
-            sample_rate = self.model.sr
+        # Lock around model inference to ensure thread safety on GPU
+        with self._lock:
+            if language != "en":
+                wav = self.multilingual_model.generate(
+                    text,
+                    audio_prompt_path=str(audio_prompt_path),
+                    language_id=language
+                )
+                sample_rate = self.multilingual_model.sr
+            else:
+                wav = self.model.generate(
+                    text,
+                    audio_prompt_path=str(audio_prompt_path)
+                )
+                sample_rate = self.model.sr
 
-        # Save as WAV first, then convert to MP3 if needed
-        wav_output = output_path.with_suffix('.wav')
-        ta.save(str(wav_output), wav, sample_rate)
+            # Save WAV while still holding the lock (uses GPU tensors)
+            wav_output = output_path.with_suffix('.wav')
+            ta.save(str(wav_output), wav, sample_rate)
 
-        # Convert to MP3 if requested
+        # ffmpeg conversion runs outside the lock so it can overlap with the next inference
         if output_path.suffix.lower() == '.mp3':
             import subprocess
             subprocess.run([
