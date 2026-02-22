@@ -144,6 +144,10 @@ class ChatterboxVoiceCloner:
             wav_output = output_path.with_suffix('.wav')
             ta.save(str(wav_output), wav, sample_rate)
 
+        # Denoise WAV before conversion (runs outside the lock)
+        from utils.denoise import clean_audio
+        clean_audio(str(wav_output), str(wav_output))
+
         # ffmpeg conversion runs outside the lock so it can overlap with the next inference
         if output_path.suffix.lower() == '.mp3':
             import subprocess
