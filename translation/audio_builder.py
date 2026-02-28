@@ -96,12 +96,39 @@ class AudioBuilder:
 
             print(f"Prepared {voice_over_result.files_path} at {start_time}ms with duration {duration}ms")
 
+        # Sort by start time to process in order
+        audio_segments.sort(key=lambda x: x[1])
+
+        # Truncate overlapping segments
+        for i in range(len(audio_segments) - 1):
+            audio_file, start_time, duration = audio_segments[i]
+            next_start = audio_segments[i + 1][1]
+            end_time = start_time + duration
+
+            if end_time > next_start:
+                overlap_ms = end_time - next_start
+                max_duration = next_start - start_time - 50  # 50ms buffer
+                if max_duration > 0:
+                    truncated = audio_file[:max_duration].fade_out(30)
+                    audio_segments[i] = (truncated, start_time, max_duration)
+                    print(f"WARNING: Segment at {start_time}ms overlaps next segment by {overlap_ms}ms — truncated to {max_duration}ms")
+                else:
+                    # Segments start at same time or nearly — skip this segment
+                    audio_segments[i] = (AudioSegment.empty(), start_time, 0)
+                    print(f"WARNING: Segment at {start_time}ms fully overlaps next segment — skipped")
+
+        # Recalculate max_end_time after truncation
+        max_end_time = 0
+        for audio_file, start_time, duration in audio_segments:
+            max_end_time = max(max_end_time, start_time + duration)
+
         # Create a base audio segment with silence for the total duration
         audio_result = AudioSegment.silent(duration=max_end_time)
 
         # Overlay each audio segment at its specified position
         for audio_file, start_time, duration in audio_segments:
-            audio_result = audio_result.overlay(audio_file, position=start_time)
+            if duration > 0:
+                audio_result = audio_result.overlay(audio_file, position=start_time)
 
         print(f"Saving {self.language}_synced.mp3")
         audio_result.export(f"outputs/{self.language}/{self.language}_synced.mp3", format="mp3")
