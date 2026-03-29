@@ -4,8 +4,8 @@ A multilingual audio/video translation platform that combines local transcriptio
 
 ## Features
 
-- **Local Transcription**: Uses OpenAI's Whisper for accurate speech-to-text (configurable model sizes: tiny, base, small, medium, large)
-- **Multi-Backend Translation**: Supports OpenAI GPT and Google Gemini for translation
+- **Local Transcription**: Uses Whisper for accurate speech-to-text (configurable model sizes: tiny, base, small, medium, large)
+- **Multi-Backend Translation**: Supports Google Gemini and LM Studio (local) for translation
 - **Voice Cloning**: Uses Chatterbox TTS for natural, speaker-specific audio generation
 - **Two Output Modes**:
   - **Time-Synchronized**: Maintains original video timing for video dubbing
@@ -17,8 +17,8 @@ A multilingual audio/video translation platform that combines local transcriptio
 
 1. Extract audio from video (using FFmpeg)
 2. Transcribe audio using Whisper (locally)
-3. Translate transcription using OpenAI or Google Gemini
-4. Generate speech using Chatterbox TTS (voice cloning) or OpenAI TTS
+3. Translate transcription using Google Gemini or LM Studio (local)
+4. Generate speech using Chatterbox TTS (voice cloning)
 
 ## Installation
 
@@ -32,7 +32,7 @@ A multilingual audio/video translation platform that combines local transcriptio
 
 ```bash
 cd translation
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -42,8 +42,9 @@ pip install -r requirements.txt
 Create a `.env` file with your API keys:
 
 ```
-OPENAI_API_KEY=your_openai_key          # For OpenAI translation and TTS
-GOOGLE_GEMINI_API_KEY=your_gemini_key   # For Gemini translation (optional)
+GOOGLE_GEMINI_API_KEY=your_gemini_key   # For Gemini translation
+# Or use LM Studio locally (no API key required)
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
 ```
 
 ## Usage
@@ -59,6 +60,8 @@ cd translation
 
 ```bash
 ./voice_clone.sh video.mp4 -l fr --sequential -g 1000 -w 8 -d cuda
+
+./voice_clone.sh video.mp4 -l fr --sequential -g 1000 -w 8 -d mps
 ```
 
 Options:
@@ -73,12 +76,6 @@ Options:
 
 ```bash
 python translate.py -l de -f audio.mp3
-```
-
-### Text-to-Speech
-
-```bash
-python speak.py -f text.txt -l de -v alloy
 ```
 
 ### DOCX Processing
@@ -100,8 +97,7 @@ saddleback/
 │   ├── utils/
 │   │   ├── translation.py        # Multi-backend translation
 │   │   └── chatterbox_tts.py     # Voice cloning engine
-│   ├── translate.py              # CLI for translating audio
-│   ├── speak.py                  # CLI for text-to-speech
+│   ├── translator.py             # CLI for translation with Chatterbox TTS
 │   └── voice_clone.sh            # Bash wrapper for voice cloning
 └── README.md
 ```
