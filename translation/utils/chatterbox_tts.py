@@ -76,7 +76,7 @@ class ChatterboxVoiceCloner:
             if torch.cuda.is_available():
                 device = "cuda"
             elif torch.backends.mps.is_available():
-                device = "cpu"  # Use CPU for MPS compatibility issues
+                device = "mps"
             else:
                 device = "cpu"
 

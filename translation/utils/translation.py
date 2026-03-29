@@ -1,25 +1,20 @@
 import os
-from openai import OpenAI
 
 # =============================================================================
 # Translation Backend Configuration
 # =============================================================================
-# Supported backends: "lmstudio", "openai", "gemini"
-# Auto-detection priority: TRANSLATION_BACKEND env var > OpenAI > Gemini > LM Studio
+# Supported backends: "lmstudio", "gemini"
+# Auto-detection priority: TRANSLATION_BACKEND env var > Gemini > LM Studio
 
 # LM Studio defaults
 DEFAULT_LMSTUDIO_BASE_URL = "http://localhost:1234/v1"
 DEFAULT_LMSTUDIO_MODEL = "qwen/qwen3-vl-8b:2"
-
-# OpenAI defaults
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 # Gemini defaults
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 
 # Global clients (lazy initialized)
 _lmstudio_client = None
-_openai_client = None
 _gemini_model = None
 
 
@@ -29,20 +24,17 @@ def detect_backend():
 
     Priority:
     1. TRANSLATION_BACKEND env var (explicit choice)
-    2. OPENAI_API_KEY present -> openai
-    3. GOOGLE_GEMINI_API_KEY present -> gemini
-    4. Default -> lmstudio (local, no API key needed)
+    2. GOOGLE_GEMINI_API_KEY present -> gemini
+    3. Default -> lmstudio (local, no API key needed)
 
-    :return: Backend name ("lmstudio", "openai", or "gemini")
+    :return: Backend name ("lmstudio" or "gemini")
     """
     # Check for explicit backend choice
     explicit_backend = os.getenv("TRANSLATION_BACKEND", "").lower()
-    if explicit_backend in ("lmstudio", "openai", "gemini"):
+    if explicit_backend in ("lmstudio", "gemini"):
         return explicit_backend
 
     # Auto-detect based on available API keys
-    if os.getenv("OPENAI_API_KEY"):
-        return "openai"
     if os.getenv("GOOGLE_GEMINI_API_KEY"):
         return "gemini"
 
@@ -52,39 +44,24 @@ def detect_backend():
 
 def get_lmstudio_client(base_url=None):
     """
-    Get or create an OpenAI client configured for LM Studio.
+    Get or create an OpenAI-compatible client configured for LM Studio.
 
     :param base_url: LM Studio API base URL
-    :return: OpenAI client instance
+    :return: OpenAI-compatible client instance
     """
     global _lmstudio_client
 
     base_url = base_url or os.getenv("LMSTUDIO_BASE_URL", DEFAULT_LMSTUDIO_BASE_URL)
 
     if _lmstudio_client is None:
+        # LM Studio exposes an OpenAI-compatible API
+        from openai import OpenAI
         _lmstudio_client = OpenAI(
             base_url=base_url,
             api_key="lm-studio"  # LM Studio doesn't require a real API key
         )
 
     return _lmstudio_client
-
-
-def get_openai_client():
-    """
-    Get or create an OpenAI client.
-
-    :return: OpenAI client instance
-    """
-    global _openai_client
-
-    if _openai_client is None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-        _openai_client = OpenAI(api_key=api_key)
-
-    return _openai_client
 
 
 def get_gemini_model():
@@ -131,25 +108,6 @@ def _translate_with_lmstudio(text, source_language, target_language, model=None,
     return response.choices[0].message.content.strip()
 
 
-def _translate_with_openai(text, source_language, target_language, model=None):
-    """Translate using OpenAI API."""
-    client = get_openai_client()
-    model = model or os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
-
-    prompt = f"Translate the following text from {source_language} to {target_language}. Only return the translated text, nothing else: {text}"
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a professional translator. Translate the given text accurately while preserving the original meaning and tone. Only output the translation, no explanations."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
-    )
-
-    return response.choices[0].message.content.strip()
-
-
 def _translate_with_gemini(text, source_language, target_language):
     """Translate using Google Gemini API."""
     model = get_gemini_model()
@@ -173,16 +131,15 @@ def translate_text(text, source_language='en', target_language='es', model=None,
     Backend selection priority:
     1. backend parameter (if provided)
     2. TRANSLATION_BACKEND env var
-    3. OPENAI_API_KEY present -> OpenAI
-    4. GOOGLE_GEMINI_API_KEY present -> Gemini
-    5. Default -> LM Studio (local)
+    3. GOOGLE_GEMINI_API_KEY present -> Gemini
+    4. Default -> LM Studio (local)
 
     :param text: Text to translate
     :param source_language: Source language code (e.g., 'en' for English)
     :param target_language: Target language code (e.g., 'es' for Spanish)
     :param model: Model to use (backend-specific, uses defaults if not provided)
     :param base_url: LM Studio API base URL (only used for lmstudio backend)
-    :param backend: Force specific backend ("lmstudio", "openai", or "gemini")
+    :param backend: Force specific backend ("lmstudio" or "gemini")
     :return: Translated text
     """
     if text == "" or text.strip() == "":
@@ -191,9 +148,7 @@ def translate_text(text, source_language='en', target_language='es', model=None,
     # Determine which backend to use
     selected_backend = backend or detect_backend()
 
-    if selected_backend == "openai":
-        return _translate_with_openai(text, source_language, target_language, model)
-    elif selected_backend == "gemini":
+    if selected_backend == "gemini":
         return _translate_with_gemini(text, source_language, target_language)
     else:  # lmstudio (default)
         return _translate_with_lmstudio(text, source_language, target_language, model, base_url)
@@ -203,7 +158,7 @@ def get_active_backend():
     """
     Get the name of the currently active translation backend.
 
-    :return: Backend name ("lmstudio", "openai", or "gemini")
+    :return: Backend name ("lmstudio" or "gemini")
     """
     return detect_backend()
 

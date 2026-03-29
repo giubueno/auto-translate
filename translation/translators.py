@@ -1,9 +1,9 @@
 import whisper
 from pathlib import Path
 import os
-from openai import OpenAI
 from pydub import AudioSegment
-from utils.translation import translate_text as openai_translate
+from utils.translation import translate_text
+from utils.chatterbox_tts import ChatterboxVoiceCloner
 
 class Segment:
     def __init__(self, text, segment):
@@ -37,11 +37,20 @@ class Transcription:
         self.translated_segments.append(Segment(text, segment))
 
 class AudioTranslator:
-    def __init__(self, audio_file_path, language="de", destination_folder="outputs"):
+    def __init__(self, audio_file_path, language="de", destination_folder="outputs", audio_prompt_path=None):
         self.audio_file_path = audio_file_path
         self.language = language
         self.destination_folder = destination_folder
         self.transcription = None
+        self.audio_prompt_path = audio_prompt_path or audio_file_path  # Use source audio for voice cloning if not specified
+        self._cloner = None
+
+    @property
+    def cloner(self):
+        """Lazy load the Chatterbox voice cloner."""
+        if self._cloner is None:
+            self._cloner = ChatterboxVoiceCloner()
+        return self._cloner
 
     def transcribe(self):
         ''' 
@@ -86,7 +95,7 @@ class AudioTranslator:
 
     def translate(self):
         """
-        Translate text from source language to target language using OpenAI.
+        Translate text from source language to target language.
 
         :return: Translated text
         """
@@ -94,12 +103,11 @@ class AudioTranslator:
             text = segment["text"]
             source_language = self.transcription.source_language()
             target_language = self.language
-            translated_text = openai_translate(text, source_language, target_language)
+            translated_text = translate_text(text, source_language, target_language)
             self.transcription.add_translated_segment(translated_text, segment)
         return self.transcription.translated_text
 
     def text_to_speech(self):
-        client = OpenAI()
         file_list = []
         file_names = []
 
@@ -110,21 +118,21 @@ class AudioTranslator:
 
         output_folder_path = f"{self.destination_folder}/{self.language}"
 
-        # Print the chunks
+        # Generate speech for each segment using Chatterbox
         for segment in segments:
             chunk = segment.text
 
-            # Text to be converted to speech
-            with client.audio.speech.with_streaming_response.create(
-                model="tts-1-hd",
-                voice="echo",
-                input=chunk
-            ) as response:
-                file_name = f"{segment.start()}.mp3"
-                speech_file_path = f"{output_folder_path}/{file_name}"
-                response.stream_to_file(speech_file_path)
-                file_list.append(speech_file_path)
-                file_names.append(file_name)
+            file_name = f"{segment.start()}.mp3"
+            speech_file_path = f"{output_folder_path}/{file_name}"
+
+            self.cloner.generate_speech(
+                chunk,
+                self.audio_prompt_path,
+                speech_file_path,
+                self.language
+            )
+            file_list.append(speech_file_path)
+            file_names.append(file_name)
 
         if os.path.exists(f"{output_folder_path}/filelist.txt"):
             os.remove(f"{output_folder_path}/filelist.txt")
@@ -132,8 +140,8 @@ class AudioTranslator:
         # Create a temporary file to hold the list of files
         with open(f"{output_folder_path}/filelist.txt", "w") as file:
             for filename in file_names:
-                file.write(f"file '{filename}'\n")        
-        
+                file.write(f"file '{filename}'\n")
+
         return file_list
 
     def join_files(output_file, file_list):

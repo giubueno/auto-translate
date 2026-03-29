@@ -5,22 +5,25 @@
 # This script automatically detects .docx files in the inputs folder and processes them
 # for text-to-speech translation into multiple languages.
 #
-# Usage: ./voice.sh [doc_language]
+# Usage: ./voice.sh [doc_language] [target_language ...]
 #   doc_language: Optional language of the source document (defaults to "de")
+#   target_language: Optional. If given, only these target languages (e.g. "de" or "en" "de")
 #
 # The script will:
 # 1. Automatically find the .docx file in the inputs folder
-# 2. Process it for languages: pt-br, de, es
+# 2. Process it for the target language(s) (default: de, es)
 # 3. Generate audio files in the outputs folder
 #
 
-source venv/bin/activate > /dev/null 2>&1
+python3 -m venv venv_voice
+
+source venv_voice/bin/activate > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "Error: Failed to activate the virtual environment"
     exit 1
 fi
 
-pip install -r requirements.txt > /dev/null 2>&1
+pip install -r requirements_voice.txt > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install the requirements"
     exit 1
@@ -45,7 +48,12 @@ if [ -z "$DOC_LANGUAGE" ]; then
     DOC_LANGUAGE="de"
 fi
 
-LANGUAGES=("de" "es")
+if [ -n "$2" ]; then
+    shift
+    LANGUAGES=("$@")
+else
+    LANGUAGES=("de" "es")
+fi
 
 for language in "${LANGUAGES[@]}"; do
     # create a folder for the date
@@ -55,16 +63,36 @@ done
 
 # Input file already verified to exist above
 
-# for each language in LANGUAGES, run the script
+# Step 1: Translate all languages in parallel (CPU/API-bound)
+echo "=== Step 1: Translating all languages in parallel ==="
+PIDS=()
 for language in "${LANGUAGES[@]}"; do
-    echo "Running for $language"
+    echo "Starting translation for $language"
+    python3 tts_from_docx.py -f "$DOCX_FILE" -l "$language" -s "$DOC_LANGUAGE" --step translate &
+    PIDS+=($!)
+done
 
-    python3 tts_from_docx.py -f "$DOCX_FILE" -l $language -s $DOC_LANGUAGE 
+FAILED=0
+for pid in "${PIDS[@]}"; do
+    wait "$pid" || FAILED=1
+done
+
+if [ $FAILED -ne 0 ]; then
+    echo "Error: One or more translations failed"
+    exit 1
+fi
+echo "=== All translations complete ==="
+
+# Step 2: Synthesize sequentially (GPU-bound, one at a time)
+echo "=== Step 2: Synthesizing audio sequentially ==="
+for language in "${LANGUAGES[@]}"; do
+    echo "Synthesizing audio for $language"
+    python3 tts_from_docx.py -f "$DOCX_FILE" -l "$language" -s "$DOC_LANGUAGE" --step synthesize
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to run the script"
+        echo "Error: Synthesis failed for $language"
         exit 1
     fi
 
-    # rename the file
-    mv ./outputs/${language}/${language}_synced.mp3 ./outputs/${language}/${language}_${DATE_FILE}.mp3
+    mv "./outputs/${language}/${language}_synced.mp3" "./outputs/${language}/${language}_${DATE_FILE}.mp3"
 done
+echo "=== All synthesis complete ==="

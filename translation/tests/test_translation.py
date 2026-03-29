@@ -10,11 +10,9 @@ from utils.translation import (
     translate_text,
     detect_backend,
     get_lmstudio_client,
-    get_openai_client,
     get_active_backend,
     DEFAULT_LMSTUDIO_BASE_URL,
     DEFAULT_LMSTUDIO_MODEL,
-    DEFAULT_OPENAI_MODEL,
     DEFAULT_GEMINI_MODEL,
 )
 
@@ -41,12 +39,6 @@ class TestDetectBackend(unittest.TestCase):
             result = detect_backend()
             self.assertEqual(result, "lmstudio")
 
-    def test_explicit_backend_openai(self):
-        """Explicit TRANSLATION_BACKEND=openai should be respected."""
-        with patch.dict(os.environ, {'TRANSLATION_BACKEND': 'openai'}):
-            result = detect_backend()
-            self.assertEqual(result, "openai")
-
     def test_explicit_backend_gemini(self):
         """Explicit TRANSLATION_BACKEND=gemini should be respected."""
         with patch.dict(os.environ, {'TRANSLATION_BACKEND': 'gemini'}):
@@ -55,15 +47,9 @@ class TestDetectBackend(unittest.TestCase):
 
     def test_explicit_backend_case_insensitive(self):
         """TRANSLATION_BACKEND should be case insensitive."""
-        with patch.dict(os.environ, {'TRANSLATION_BACKEND': 'OPENAI'}):
+        with patch.dict(os.environ, {'TRANSLATION_BACKEND': 'GEMINI'}):
             result = detect_backend()
-            self.assertEqual(result, "openai")
-
-    def test_openai_key_selects_openai(self):
-        """OPENAI_API_KEY present should select openai backend."""
-        with patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-test'}):
-            result = detect_backend()
-            self.assertEqual(result, "openai")
+            self.assertEqual(result, "gemini")
 
     def test_gemini_key_selects_gemini(self):
         """GOOGLE_GEMINI_API_KEY present should select gemini backend."""
@@ -71,20 +57,11 @@ class TestDetectBackend(unittest.TestCase):
             result = detect_backend()
             self.assertEqual(result, "gemini")
 
-    def test_openai_priority_over_gemini(self):
-        """OpenAI should have priority over Gemini when both keys present."""
-        with patch.dict(os.environ, {
-            'OPENAI_API_KEY': 'sk-test',
-            'GOOGLE_GEMINI_API_KEY': 'test-key'
-        }):
-            result = detect_backend()
-            self.assertEqual(result, "openai")
-
     def test_explicit_backend_overrides_auto_detection(self):
         """Explicit backend should override auto-detection."""
         with patch.dict(os.environ, {
             'TRANSLATION_BACKEND': 'lmstudio',
-            'OPENAI_API_KEY': 'sk-test'
+            'GOOGLE_GEMINI_API_KEY': 'test-key'
         }):
             result = detect_backend()
             self.assertEqual(result, "lmstudio")
@@ -133,66 +110,6 @@ class TestLMStudioBackend(unittest.TestCase):
         self.assertEqual(result, "Hallo Welt")
         mock_client.chat.completions.create.assert_called_once()
 
-    @patch('utils.translation.OpenAI')
-    def test_lmstudio_client_uses_default_url(self, mock_openai):
-        """LM Studio client should use default base URL."""
-        get_lmstudio_client()
-        mock_openai.assert_called_once_with(
-            base_url=DEFAULT_LMSTUDIO_BASE_URL,
-            api_key="lm-studio"
-        )
-
-    @patch('utils.translation.OpenAI')
-    def test_lmstudio_client_uses_env_url(self, mock_openai):
-        """LM Studio client should use LMSTUDIO_BASE_URL env var."""
-        with patch.dict(os.environ, {'LMSTUDIO_BASE_URL': 'http://custom:5000/v1'}):
-            import utils.translation as translation_module
-            translation_module._lmstudio_client = None  # Reset
-            get_lmstudio_client()
-            mock_openai.assert_called_once_with(
-                base_url='http://custom:5000/v1',
-                api_key="lm-studio"
-            )
-
-
-class TestOpenAIBackend(unittest.TestCase):
-    """Tests for OpenAI translation backend."""
-
-    def setUp(self):
-        """Reset global client state before each test."""
-        import utils.translation as translation_module
-        translation_module._openai_client = None
-
-    @patch('utils.translation.get_openai_client')
-    @patch('utils.translation.detect_backend', return_value='openai')
-    def test_translate_with_openai(self, mock_detect, mock_get_client):
-        """translate_text should use OpenAI when backend is openai."""
-        mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Bonjour le monde"
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_get_client.return_value = mock_client
-
-        result = translate_text("Hello World", "en", "fr")
-
-        self.assertEqual(result, "Bonjour le monde")
-
-    @patch('utils.translation.OpenAI')
-    def test_openai_client_requires_api_key(self, mock_openai):
-        """OpenAI client should raise error without API key."""
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(ValueError) as context:
-                get_openai_client()
-            self.assertIn("OPENAI_API_KEY", str(context.exception))
-
-    @patch('utils.translation.OpenAI')
-    def test_openai_client_uses_api_key(self, mock_openai):
-        """OpenAI client should use OPENAI_API_KEY env var."""
-        with patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-test-key'}):
-            get_openai_client()
-            mock_openai.assert_called_once_with(api_key='sk-test-key')
-
 
 class TestGeminiBackend(unittest.TestCase):
     """Tests for Google Gemini translation backend."""
@@ -227,13 +144,6 @@ class TestBackendParameter(unittest.TestCase):
         translate_text("Hello", "en", "de", backend="lmstudio")
         mock_translate.assert_called_once()
 
-    @patch('utils.translation._translate_with_openai')
-    def test_explicit_backend_openai(self, mock_translate):
-        """Explicit backend='openai' should use OpenAI."""
-        mock_translate.return_value = "Test"
-        translate_text("Hello", "en", "de", backend="openai")
-        mock_translate.assert_called_once()
-
     @patch('utils.translation._translate_with_gemini')
     def test_explicit_backend_gemini(self, mock_translate):
         """Explicit backend='gemini' should use Gemini."""
@@ -242,11 +152,11 @@ class TestBackendParameter(unittest.TestCase):
         mock_translate.assert_called_once()
 
     @patch('utils.translation._translate_with_lmstudio')
-    @patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-test'})
+    @patch.dict(os.environ, {'GOOGLE_GEMINI_API_KEY': 'test-key'})
     def test_explicit_backend_overrides_env(self, mock_translate):
         """Explicit backend parameter should override env var detection."""
         mock_translate.return_value = "Test"
-        # Even with OPENAI_API_KEY set, explicit backend should win
+        # Even with GOOGLE_GEMINI_API_KEY set, explicit backend should win
         translate_text("Hello", "en", "de", backend="lmstudio")
         mock_translate.assert_called_once()
 
@@ -256,10 +166,10 @@ class TestGetActiveBackend(unittest.TestCase):
 
     def test_returns_detected_backend(self):
         """get_active_backend should return the detected backend."""
-        with patch('utils.translation.detect_backend', return_value='openai'):
+        with patch('utils.translation.detect_backend', return_value='gemini'):
             from utils.translation import get_active_backend
             result = get_active_backend()
-            self.assertEqual(result, "openai")
+            self.assertEqual(result, "gemini")
 
 
 class TestDefaultValues(unittest.TestCase):
@@ -272,10 +182,6 @@ class TestDefaultValues(unittest.TestCase):
     def test_default_lmstudio_model(self):
         """Default LM Studio model should be qwen/qwen3-vl-8b:2."""
         self.assertEqual(DEFAULT_LMSTUDIO_MODEL, "qwen/qwen3-vl-8b:2")
-
-    def test_default_openai_model(self):
-        """Default OpenAI model should be gpt-4o-mini."""
-        self.assertEqual(DEFAULT_OPENAI_MODEL, "gpt-4o-mini")
 
     def test_default_gemini_model(self):
         """Default Gemini model should be gemini-2.0-flash."""

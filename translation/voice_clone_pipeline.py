@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from dotenv import load_dotenv
 
-from transcribe import extract_audio_from_video, transcribe_audio_local
+from transcribe import extract_audio_from_video, transcribe_audio_local, extract_segment_prompts
 from utils.translation import translate_text
 from utils.chatterbox_tts import ChatterboxVoiceCloner, voice_over_chatterbox, VoiceOverResult
 from audio_builder import AudioBuilder
@@ -89,10 +89,18 @@ def run_pipeline(video_path, target_language="de", source_language="en",
         segments = transcription_result['segments']
         print(f"Found {len(segments)} segments to process")
 
+        # Step 3b: Extract per-segment audio prompts for intonation preservation
+        print(f"\n[Step 3b] Extracting per-segment audio prompts...")
+        enriched_segments = extract_segment_prompts(audio_path, transcription_result, output_dir)
+        print(f"Extracted {len(enriched_segments)} segment prompts with prosody data")
+
+        # Build lookup for enriched data
+        enriched_lookup = {seg['index']: seg for seg in enriched_segments}
+
         # Step 4: Translate all segments in parallel for speed
         print(f"\n[Step 4] Translating segments in parallel ({parallel_workers} workers)...")
 
-        # Prepare segments with their metadata
+        # Prepare segments with their metadata and per-segment audio prompts
         segments_to_process = []
         for i, segment in enumerate(segments):
             original_text = segment['text'].strip()
@@ -101,11 +109,15 @@ def run_pipeline(video_path, target_language="de", source_language="en",
             start_time = segment['start']
             minutes = int(start_time // 60)
             seconds = int(start_time % 60)
+
+            enriched = enriched_lookup.get(i, {})
             segments_to_process.append({
                 'index': i,
                 'original_text': original_text,
                 'minutes': minutes,
-                'seconds': seconds
+                'seconds': seconds,
+                'audio_prompt': enriched.get('audio_prompt', audio_path),
+                'prosody': enriched.get('prosody', {}),
             })
 
         # Parallel translation
@@ -130,13 +142,16 @@ def run_pipeline(video_path, target_language="de", source_language="en",
         voice_over_results = []
 
         def generate_speech_segment(seg):
-            print(f"\nSegment {seg['index'] + 1}/{len(segments)} [{seg['minutes']:02d}:{seg['seconds']:02d}]")
+            prosody = seg.get('prosody', {})
+            rate_info = f" | rate: {prosody.get('speech_rate_wps', '?')} wps" if prosody else ""
+            print(f"\nSegment {seg['index'] + 1}/{len(segments)} [{seg['minutes']:02d}:{seg['seconds']:02d}]{rate_info}")
             print(f"  Text: {seg['translated_text'][:50]}{'...' if len(seg['translated_text']) > 50 else ''}")
+            print(f"  Prompt: {Path(seg['audio_prompt']).name}")
             return voice_over_chatterbox(
                 minutes=seg['minutes'],
                 seconds=seg['seconds'],
                 text=seg['translated_text'],
-                audio_prompt_path=audio_path,
+                audio_prompt_path=seg['audio_prompt'],
                 language=target_language,
                 files_path=str(files_path),
                 cloner=cloner

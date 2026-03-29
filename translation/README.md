@@ -1,6 +1,6 @@
 # Translation
 
-Code used to translate audios using Whisper to transcribe text, LM Studio (local LLM) to translate the text, and OpenAI or Chatterbox for text-to-speech.
+Code used to translate audios using Whisper to transcribe text, LM Studio or Gemini to translate the text, and Chatterbox for text-to-speech with voice cloning.
 
 ## Running
 
@@ -47,34 +47,30 @@ pip install numpy==1.26.4
 This project uses several external services that require API keys and credentials. Create a `.env` file in the root directory with the following variables:
 
 ```sh
-# LM Studio Configuration (for translation)
+# LM Studio Configuration (for local translation)
 LMSTUDIO_BASE_URL=http://localhost:1234/v1
 LMSTUDIO_MODEL=qwen/qwen3-vl-8b:2
 
-# OpenAI API Key (required for text-to-speech)
-OPENAI_API_KEY=your_openai_api_key_here
+# Google Gemini API Key (for translation)
+GOOGLE_GEMINI_API_KEY=your_gemini_api_key_here
 
 # Google Cloud Credentials (optional, for Google Cloud services)
 GOOGLE_APPLICATION_CREDENTIALS=path/to/your/google-credentials.json
-
-# Google Gemini API Key (optional, for video translation features)
-GOOGLE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 #### How to obtain credentials:
 
-1. **LM Studio (for translation):**
+1. **LM Studio (for local translation):**
    - Download and install [LM Studio](https://lmstudio.ai/)
    - Download a model (default: `qwen/qwen3-vl-8b:2`)
    - Start the local server (default port: 1234)
    - The API is OpenAI-compatible and runs at `http://localhost:1234/v1`
    - No API key required for local usage
 
-2. **OpenAI API Key (for text-to-speech):**
-   - Sign up at [OpenAI Platform](https://platform.openai.com/)
+2. **Google Gemini API Key (for translation):**
+   - Sign up at [Google AI Studio](https://aistudio.google.com/)
    - Navigate to API Keys section
    - Create a new API key
-   - Add billing information (required for API usage)
 
 3. **Google Cloud Credentials (optional):**
    - Set up a Google Cloud project
@@ -91,16 +87,6 @@ python -m unittest discover -s tests
 
 ## Audio translation
 
-### Text to audio
-
-```sh
-python speak.py -f inputs/texts/de/0039.txt -l de -v alloy
-```
-
-```sh
-python speak.py -f inputs/texts/de/0125.txt -l de -v fable
-```
-
 ### Building an MP3 file
 
 0125 = 85000
@@ -115,17 +101,36 @@ python build.py -f outputs/de/german.mp3 -i outputs/de/0125.mp3 -o outputs/de/ge
 python translate.py -l de -f inputs/texts/en/0125.txt
 ```
 
+## Pipelines Comparison
+
+This project offers two distinct audio translation pipelines:
+
+| | `voice.sh` | `voice_clone.sh` |
+|---|---|---|
+| **Input** | `.docx` document | Video file (`.mp4`) |
+| **TTS Engine** | Cloud API (OpenAI) | Local model (Chatterbox) |
+| **Voice Output** | Standard/generic voice | Cloned from original speaker |
+| **Python Entry** | `tts_from_docx.py` | `voice_clone_pipeline.py` |
+| **Default Languages** | `de`, `es` | 23+ supported |
+| **Parallelism** | Sequential per language | Configurable workers (`-w`) |
+| **Audio Modes** | Time-synced | Time-synced or sequential |
+| **Device Support** | N/A (cloud) | `cuda`, `mps`, `cpu` |
+
+**When to use `voice.sh`:** You have a written document (`.docx`) and need it translated and spoken in a standard voice. Best for quick document-to-speech conversion.
+
+**When to use `voice_clone.sh`:** You have a video of someone speaking and want the translation to sound like the original speaker. Best for dubbing, podcasts, or preserving speaker authenticity.
+
 ## Running voice.sh
 
-The `voice.sh` script is a comprehensive automation tool that processes DOCX files and generates translated audio files for multiple languages.
+The `voice.sh` script automatically detects a `.docx` file in the `inputs/` folder and generates translated audio files for one or more target languages.
 
 ### Prerequisites
 
 Before running `voice.sh`, ensure you have:
 
 1. **All required credentials** (see section above)
-2. **A DOCX file** in the `inputs/` directory with the correct naming format
-3. **Virtual environment activated**
+2. **A `.docx` file** placed in the `inputs/` directory
+3. **A Python virtual environment** at `venv/` (the script activates it automatically)
 
 ### Usage
 
@@ -133,44 +138,37 @@ Before running `voice.sh`, ensure you have:
 # Make the script executable (first time only)
 chmod +x voice.sh
 
-# Run the script
+./voice.sh [doc_language] [target_language ...]
+```
+
+| Argument | Description | Default |
+|---|---|---|
+| `doc_language` | Language of the source document | `de` |
+| `target_language` | One or more target languages to generate | `de es` |
+
+### Examples
+
+```sh
+# Default: source is German, generates German and Spanish audio
 ./voice.sh
+
+# Source is English, generate German and Spanish
+./voice.sh en de es
+
+# Source is English, generate only French
+./voice.sh en fr
+
+# Source is German, generate Portuguese, Spanish, and Italian
+./voice.sh de pt-br es it
 ```
 
 ### What voice.sh does
 
-The script performs the following operations:
-
-1. **Activates the virtual environment**
-2. **Installs/updates dependencies** from `requirements.txt`
-3. **Sets environment variables:**
-   - `DATE_FILE`: The date identifier for the DOCX file (default: "20250727")
-   - `DOC_LANGUAGE`: Source language of the document (default: "de")
-4. **Processes multiple languages:** Portuguese (pt-br), German (de), and Spanish (es)
-5. **For each language:**
+1. **Activates** the virtual environment and installs dependencies
+2. **Auto-detects** the first `.docx` file in `inputs/`
+3. **For each target language:**
    - Runs `tts_from_docx.py` to translate and convert text to speech
-   - Renames output files with date suffix
-6. **Prepares files for Google Drive upload** (commented out in the script)
-
-### Customizing voice.sh
-
-You can modify the script to:
-
-- **Change the date file:** Edit the `DATE_FILE` variable
-- **Change source language:** Edit the `DOC_LANGUAGE` variable  
-- **Add/remove target languages:** Modify the `LANGUAGES` array
-- **Change input file path:** Update the path in the `tts_from_docx.py` call
-
-### Example customization:
-
-```bash
-# Change the date and source language
-export DATE_FILE="20250115"
-export DOC_LANGUAGE=en
-
-# Add more languages
-LANGUAGES=("pt-br" "de" "es" "fr" "it")
-```
+   - Saves the output as `outputs/{lang}/{lang}_{filename}.mp3`
 
 ### Input file format
 

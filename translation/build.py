@@ -24,7 +24,7 @@ output_path = "combined_audio.mp3"
 insert_time_ms = 30000  # Insert at 30 seconds
 
 # Parse the command line arguments
-parser = argparse.ArgumentParser(description="Convert text to speech using OpenAI's API")
+parser = argparse.ArgumentParser(description="Insert an MP3 file into another MP3 at a specific time")
 parser.add_argument("-f", "--file", help="Main MP3", required=True)
 parser.add_argument("-i", "--insert", help="MP3 to be inserted", required=True)
 parser.add_argument("-o", "--output", help="Output MP3", required=True)

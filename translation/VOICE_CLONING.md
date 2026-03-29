@@ -7,7 +7,7 @@ Clone a voice from a video and generate translated speech using Chatterbox (loca
 - Python 3.11 (required by Chatterbox)
 - FFmpeg installed (`brew install ffmpeg` on macOS)
 - Sufficient RAM (8GB+ recommended)
-- OpenAI API key (for translation)
+- Google Gemini API key or LM Studio (for translation)
 
 ## Setup
 
@@ -24,13 +24,15 @@ cd /Users/giubueno/projects/saddleback/translation
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install openai git+https://github.com/openai/whisper.git
+pip install git+https://github.com/openai/whisper.git
 ```
 
-3. Set your OpenAI API key in `.env`:
+3. Set your Gemini API key in `.env` (or use LM Studio locally):
 
 ```
-OPENAI_API_KEY=your_api_key_here
+GOOGLE_GEMINI_API_KEY=your_api_key_here
+# Or for local LM Studio:
+# LMSTUDIO_BASE_URL=http://localhost:1234/v1
 ```
 
 ## Usage
@@ -113,7 +115,7 @@ outputs/<language>/
 2. **Initialize Chatterbox** - Loads the multilingual TTS model
 3. **Transcribe** - Uses Whisper to transcribe audio with timestamps
 4. **Translate & Generate** - For each segment:
-   - Translates text using OpenAI GPT-3.5
+   - Translates text using Gemini or LM Studio
    - Generates speech with cloned voice using Chatterbox
 5. **Build Audio** - Synchronizes all segments into final output
 
@@ -152,6 +154,6 @@ sudo apt install ffmpeg
 | `voice_clone_pipeline.py` | Main orchestration script |
 | `voice_clone.sh` | Shell wrapper for easy execution |
 | `utils/chatterbox_tts.py` | Chatterbox voice cloning utility |
-| `utils/translation.py` | OpenAI translation utility |
+| `utils/translation.py` | Multi-backend translation utility (Gemini/LM Studio) |
 | `transcribe.py` | Whisper transcription utility |
 | `audio_builder.py` | Audio synchronization utility |
