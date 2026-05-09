@@ -49,7 +49,7 @@ externalDependencies:
     spikeResult: "PASS (DE+ES voice-cloned, RTF 1.4-2.2x M-series, 7GB peak)"
   transcribe:
     library: "faster-whisper"
-    model: "large-v3 (or turbo)"
+    model: "large-v3-turbo"
   mux: "ffmpeg"
 proposedNfrs:
   - "Deterministic test mode (mocked LM Studio + cached TTS)"
@@ -107,7 +107,7 @@ The tool addresses a concrete pain: solo-presenter meeting recordings — pitch 
 
 - **End-to-end success rate:** ≥ 95% of 30-min source MP4s complete the full pipeline without manual intervention (failures isolated and reported, not silent).
 - **Translation quality gate:** ≥ 90% of segments accepted on first pass (no manual regen) for typical meeting content (no proprietary jargon).
-- **Voice intelligibility:** Whisper large-v3 round-trip transcription of dubbed audio matches source semantic intent (judged by sentence-level similarity ≥ 0.85, e.g., via embedding cosine sim) for ≥ 95% of segments.
+- **Voice intelligibility:** Whisper round-trip transcription of dubbed audio matches source semantic intent (judged by sentence-level similarity ≥ 0.85, e.g., via embedding cosine sim) for ≥ 95% of segments.
 - **Memory ceiling:** Peak RSS ≤ 8 GB during TTS. Runs on 16 GB Mac with other apps open.
 - **Determinism:** Test mode with mocked LM Studio + cached TTS produces byte-identical output across runs (locked seeds, recorded responses).
 
@@ -141,7 +141,7 @@ The tool addresses a concrete pain: solo-presenter meeting recordings — pitch 
 1. Runs `saddleback dub weekly-demo-2026-05-08.mp4`.
 2. CLI confirms: source detected, no `.srt` sidecar, both DE and ES targets, 28:14 duration. Asks `[y/N]`. Confirms.
 3. Stage 1 — *Extract audio.* Bar fills in seconds. Source ref clip auto-extracted from longest contiguous speech window.
-4. Stage 2 — *Transcribe.* faster-whisper large-v3 chews through audio. Per-segment count rises live. ~2 min.
+4. Stage 2 — *Transcribe.* faster-whisper large-v3-turbo chews through audio. Per-segment count rises live. ~2 min.
 5. Stage 3 — *Translate.* LM Studio at `192.168.0.42:1234` reachable, `gemma-4-e4b` loaded. Per-segment progress for DE, then ES. ~5 min combined.
 6. Stage 4 — *TTS.* Qwen3-TTS via `mlx_audio` synthesizes DE then ES, segment by segment. Per-segment RTF shown live. ~30 min combined.
 7. Stage 5 — *Time-fit + Build.* Each segment stretched/compressed to source timing window. Crossfade across gaps. Audible warning lights up if any segment exceeded length budget (none did).
@@ -332,7 +332,7 @@ temperature = 0.2
 max_concurrency = 4
 
 [transcribe]
-model        = "large-v3"
+model        = "large-v3-turbo"
 device       = "cpu"
 compute_type = "int8"
 
@@ -407,7 +407,7 @@ CLI flag overrides for the most common: `--lang`, `--translator-endpoint`, `--co
 
 - `saddleback dub <input.mp4>` runs full pipeline end-to-end with both DE and ES targets
 - ffmpeg-based audio extract + final mux
-- faster-whisper transcription (large-v3, segment-level timestamps)
+- faster-whisper transcription (large-v3-turbo default, large-v3 selectable, segment-level timestamps)
 - LM Studio translation (gemma-4-e4b @ configurable endpoint, system-prompt-anchored, JSON-validated)
 - Auto voice-reference-clip extraction from longest contiguous source-speech window
 - Qwen3-TTS synthesis via mlx_audio (`mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit`)

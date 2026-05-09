@@ -18,7 +18,9 @@ class TranslatorConfig(BaseModel):
 
 
 class TranscribeConfig(BaseModel):
-    model: str = "large-v3"
+    # large-v3-turbo: ~3x faster than large-v3 on CPU int8 with comparable accuracy.
+    # Switch to "large-v3" if quality regressions on long-form material show up.
+    model: str = "large-v3-turbo"
     device: str = "cpu"
     compute_type: str = "int8"
     language: str = "en"
