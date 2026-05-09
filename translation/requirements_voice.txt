@@ -1,7 +1,0 @@
-python-docx
-gTTS
-pydub
-openai
-google-generativeai
-python-dotenv
-openai-whisper
