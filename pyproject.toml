@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "saddleback"
+version = "0.1.0"
+description = "Local-first CLI to dub English meeting MP4s into German and Spanish audio."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = { text = "MIT" }
+authors = [{ name = "Giulliano Bueno" }]
+dependencies = [
+    "typer==0.25.1",
+    "rich==15.0.0",
+    "pydantic==2.12.0",
+    "openai==2.7.0",
+    "mlx-audio==0.4.3",
+    "faster-whisper==1.2.0",
+    "soundfile==0.13.1",
+    "numpy==2.4.4",
+    "tomli==2.2.1; python_version < '3.11'",
+]
+
+[project.scripts]
+saddleback = "saddleback.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.1",
+    "pytest-asyncio==1.2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/saddleback"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
