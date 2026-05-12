@@ -29,7 +29,7 @@ See [`docs/prd.md`](docs/prd.md) for the full PRD: capability contract (43 FRs),
 | **macOS 14+ on Apple Silicon** | M1, M2, M3, or M4. Intel macOS, Linux, and Windows are explicitly out of MVP scope. |
 | **Python 3.14** | The CLI enforces this at startup. Use Homebrew (`brew install python@3.14`) or [pyenv](https://github.com/pyenv/pyenv). |
 | **ffmpeg** | `brew install ffmpeg`. Tested with ffmpeg 6.x and 8.x. |
-| **LM Studio** | Running on the local LAN, OpenAI-compatible API enabled, with the configured translation model loaded. Default endpoint: `http://192.168.0.42:1234/v1`. Default model: `google/gemma-4-e4b`. Both are configurable. |
+| **LM Studio** | Running on the local LAN, OpenAI-compatible API enabled, with the configured translation model loaded. Default endpoint: `http://192.168.0.77:1234/v1`. Default model: `google/gemma-4-e4b`. Both are configurable. |
 | **~5 GB free disk** | Qwen3-TTS model (~2 GB), faster-whisper model (~1 GB), per-job intermediates (~1–2 GB for a 30-min source). |
 | **16 GB RAM minimum** | Peak resident set during TTS is ~7 GB. The pipeline is single-job; do not run two concurrently. |
 
@@ -148,7 +148,7 @@ Configuration is layered. Later layers override earlier ones; arrays of tables m
 
 ```toml
 [translator]
-endpoint        = "http://192.168.0.42:1234/v1"
+endpoint        = "http://192.168.0.77:1234/v1"
 model           = "google/gemma-4-e4b"
 api_key         = "lm-studio"
 temperature     = 0.2
@@ -346,7 +346,7 @@ LM Studio is not reachable, or the configured model is not loaded.
 1. Open LM Studio on the host.
 2. Load `google/gemma-4-e4b` (or the model named in your config).
 3. Start the local server (Settings → Developer → Local Server → Start).
-4. Test reachability: `curl http://192.168.0.42:1234/v1/models`.
+4. Test reachability: `curl http://192.168.0.77:1234/v1/models`.
 5. If the host has changed, set `SADDLEBACK_TRANSLATOR_ENDPOINT` or update `saddleback.toml`.
 
 ### `saddleback doctor` fails on `tts_model`

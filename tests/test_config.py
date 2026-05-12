@@ -8,7 +8,7 @@ from saddleback.config import Config, load_config
 
 def test_defaults_match_prd():
     cfg = Config()
-    assert cfg.translator.endpoint == "http://192.168.0.42:1234/v1"
+    assert cfg.translator.endpoint == "http://192.168.0.77:1234/v1"
     assert cfg.translator.model == "google/gemma-4-e4b"
     assert cfg.tts.model == "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
     assert cfg.targets.languages == ["de", "es"]

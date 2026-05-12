@@ -17,6 +17,7 @@ dependencies = [
     "openai==2.7.0",
     "mlx-audio==0.4.3",
     "faster-whisper==1.2.0",
+    "requests==2.32.5",
     "soundfile==0.13.1",
     "numpy==2.4.4",
     "tomli==2.2.1; python_version < '3.11'",

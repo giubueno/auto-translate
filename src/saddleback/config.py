@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class TranslatorConfig(BaseModel):
-    endpoint: str = "http://192.168.0.42:1234/v1"
+    endpoint: str = "http://192.168.0.77:1234/v1"
     model: str = "google/gemma-4-e4b"
     api_key: str = "lm-studio"
     temperature: float = 0.2
