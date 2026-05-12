@@ -320,47 +320,17 @@ Exit codes:
 
 ### Config Schema
 
-Layered, last-wins: built-in defaults → user config → project config → env vars → CLI flags.
+Configuration is 100% environment-variable driven. There is no TOML or YAML config file. Local overrides live in a gitignored `.env` file at the project root; every supported variable is documented in `.env.sample` with its default value.
 
-Config file format: TOML. Example:
+Precedence (lowest → highest):
 
-```toml
-[translator]
-endpoint = "http://localhost:1234/v1"   # override via SADDLEBACK_TRANSLATOR_ENDPOINT for a LAN host
-model    = "google/gemma-4-e4b"
-temperature = 0.2
-max_concurrency = 4
+1. Built-in defaults (in `src/saddleback/config.py`)
+2. Variables already in `os.environ` (shell exports, CI env, etc.)
+3. Variables loaded from `.env` (only applied to keys not already in the environment — shell wins over file)
 
-[transcribe]
-model        = "large-v3-turbo"
-device       = "cpu"
-compute_type = "int8"
+Variable names follow the flattened pattern `SADDLEBACK_<SECTION>_<KEY>` — e.g. `SADDLEBACK_TRANSLATOR_ENDPOINT`, `SADDLEBACK_TTS_MODEL`, `SADDLEBACK_RUNTIME_TEST_MODE`. List-valued knobs (`SADDLEBACK_TARGETS_LANGUAGES`, `SADDLEBACK_OUTPUT_FORMATS`) accept comma-separated values.
 
-[tts]
-model      = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
-sample_rate_out = 24000
-ref_min_seconds = 3
-ref_max_seconds = 8
-
-[output]
-formats     = ["mp4"]
-copy_video  = true
-audio_codec = "aac"
-audio_bitrate_k = 192
-
-[runtime]
-runs_dir     = "./runs"
-keep_intermediate = true
-parallel_translate = true
-parallel_tts       = false   # serialize TTS to respect 7GB peak memory ceiling
-
-[targets]
-languages = ["de", "es"]
-```
-
-Env-var overrides follow the dotted key flattened: `SADDLEBACK_TRANSLATOR_ENDPOINT`, `SADDLEBACK_TTS_MODEL`, etc.
-
-CLI flag overrides for the most common: `--lang`, `--translator-endpoint`, `--config`.
+The `--config PATH` CLI flag points at an alternate `.env`-format file when the default `./.env` is not desired.
 
 ### Scripting Support
 
@@ -417,7 +387,7 @@ CLI flag overrides for the most common: `--lang`, `--translator-endpoint`, `--co
 - `saddleback regen <id> [--lang] [--shorter]` with partial rebuild + partial re-mux
 - `saddleback doctor` preflight check
 - Auto-detect `<source>.srt` sidecar to skip Whisper
-- TOML config + env-var overrides + CLI flag overrides
+- Env-var-only configuration (no TOML/YAML), with `.env` file loader; CLI flag overrides for the most common knobs
 - `rich`-styled progress UI + `--json` NDJSON event stream alternative
 - Stable exit codes (0/1/2/3/4/5/130)
 - Deterministic test mode (mocked LM Studio responses, cached TTS outputs)
@@ -453,7 +423,7 @@ CLI flag overrides for the most common: `--lang`, `--translator-endpoint`, `--co
 | **Technical: Translation length explosion (DE > 1.3× EN)** | MVP | Translator system prompt instructs target-length budget. Translation length-budget validator + auto re-prompt with `--shorter`. Manual `regen --shorter` as escape valve. |
 | **Technical: 7 GB peak TTS memory ceiling** | MVP | Hard policy: serialize TTS jobs (no concurrent TTS workers in MVP). Documented as `runtime.parallel_tts = false` default. Phase 2 may revisit. |
 | **Technical: LM Studio host changes IP / restarts** | MVP | Configurable endpoint, preflight reachability check, actionable error message including the current configured URL. |
-| **Operational: Operator returns months later, env broken** | MVP | Pinned `requirements.txt` with explicit version specifiers; pinned model revisions in TOML config; `saddleback doctor` reports exact remediation steps. |
+| **Operational: Operator returns months later, env broken** | MVP | Pinned `requirements.txt` with explicit version specifiers; pinned model revisions in `.env`; `saddleback doctor` reports exact remediation steps. |
 | **Quality: Bad segment ships unnoticed** | MVP | Round-trip Whisper transcription of dubbed audio with cosine-similarity threshold; segments below threshold flagged in summary report for operator review. |
 | **Market: Audience finds dub unhelpful** | MVP | Validation gate requires ≥ 1 DE and ≥ 1 ES audience checkpoint before declaring MVP done. If feedback fails, scope returns to translator/TTS quality (not new features). |
 | **Resource: Developer underestimates work** | MVP | MVP is intentionally narrow (DE+ES only, single-speaker only, no diarization, no UI beyond CLI). Cut Phase-2 features without remorse if MVP slips. |

@@ -1,7 +1,23 @@
+"""Configuration: env-var-driven, with optional .env file loading.
+
+Policy: every configurable knob is a SADDLEBACK_<SECTION>_<KEY> environment
+variable. There is no TOML or YAML config file. Local development overrides
+live in a .env file at the project root (gitignored). The .env.sample file
+documents every supported variable with its default value.
+
+Layering (lowest → highest precedence):
+  1. Built-in defaults (this module)
+  2. Variables already in os.environ
+  3. Variables loaded from .env files (only sets keys not already in env)
+
+Note that step 3 NEVER overrides step 2 — a value already exported in the
+shell wins over the .env file. This matches the conventional dotenv contract
+and lets CI / overrides work without editing the file.
+"""
+
 from __future__ import annotations
 
 import os
-import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -9,11 +25,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class TranslatorConfig(BaseModel):
-    # Default targets a local LM Studio instance running on the same machine.
-    # Operators running LM Studio on another host on the LAN should override
-    # via the SADDLEBACK_TRANSLATOR_ENDPOINT environment variable or via
-    # ~/.config/saddleback/config.toml — do NOT hard-code a LAN IP into a
-    # committed default (would publish private network topology).
+    # Default targets a local LM Studio instance. Operators on a non-loopback
+    # host MUST override via SADDLEBACK_TRANSLATOR_ENDPOINT.
     endpoint: str = "http://localhost:1234/v1"
     model: str = "google/gemma-4-e4b"
     api_key: str = "lm-studio"
@@ -46,6 +59,13 @@ class OutputConfig(BaseModel):
     audio_codec: str = "aac"
     audio_bitrate_k: int = 192
 
+    @field_validator("formats", mode="before")
+    @classmethod
+    def _coerce_formats(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
 
 class RuntimeConfig(BaseModel):
     runs_dir: Path = Path("./runs")
@@ -64,6 +84,13 @@ class RuntimeConfig(BaseModel):
 
 class TargetsConfig(BaseModel):
     languages: list[str] = Field(default_factory=lambda: ["de", "es"])
+
+    @field_validator("languages", mode="before")
+    @classmethod
+    def _coerce_languages(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = [s.strip() for s in v.split(",") if s.strip()]
+        return v
 
     @field_validator("languages")
     @classmethod
@@ -84,28 +111,56 @@ class Config(BaseModel):
     targets: TargetsConfig = Field(default_factory=TargetsConfig)
 
 
-def _load_toml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    with path.open("rb") as f:
-        return tomllib.load(f)
-
-
-def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    out = dict(base)
-    for k, v in override.items():
-        if k in out and isinstance(out[k], dict) and isinstance(v, dict):
-            out[k] = _deep_merge(out[k], v)
-        else:
-            out[k] = v
-    return out
-
-
 _ENV_PREFIX = "SADDLEBACK_"
 
 
+def _parse_dotenv(text: str) -> dict[str, str]:
+    """Parse a .env file's contents into a dict of KEY=VALUE pairs.
+
+    Supports: blank lines, full-line `# ...` comments, KEY=VALUE pairs with
+    optional surrounding single or double quotes, and a leading `export `
+    keyword (`export FOO=bar`). Does NOT support multiline values, variable
+    interpolation, or inline comments (the value runs to end-of-line).
+    """
+    pairs: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].lstrip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if (value.startswith('"') and value.endswith('"')) or (
+            value.startswith("'") and value.endswith("'")
+        ):
+            value = value[1:-1]
+        if key:
+            pairs[key] = value
+    return pairs
+
+
+def load_dotenv_into_env(path: Path, override: bool = False) -> int:
+    """Load `.env`-style file into os.environ. Existing env vars win unless override=True.
+
+    Returns the number of keys set. Missing files are silently ignored.
+    """
+    if not path.exists():
+        return 0
+    pairs = _parse_dotenv(path.read_text(encoding="utf-8"))
+    n = 0
+    for key, value in pairs.items():
+        if override or key not in os.environ:
+            os.environ[key] = value
+            n += 1
+    return n
+
+
 def _from_env() -> dict[str, Any]:
-    """Read SADDLEBACK_<SECTION>_<KEY>=value into nested dict."""
+    """Read SADDLEBACK_<SECTION>_<KEY>=value into a nested dict."""
     sections: dict[str, dict[str, Any]] = {}
     for key, value in os.environ.items():
         if not key.startswith(_ENV_PREFIX):
@@ -137,16 +192,15 @@ def load_config(
     explicit_path: Path | None = None,
     cwd: Path | None = None,
 ) -> Config:
-    """Layered: defaults → ~/.config/saddleback/config.toml → ./saddleback.toml → env → explicit_path."""
+    """Build Config from defaults + environment + optional .env file.
+
+    Lookup order for the .env file (first match wins):
+      1. explicit_path argument (typically from --config CLI flag)
+      2. <cwd>/.env
+    """
     cwd = cwd or Path.cwd()
-    user_config = Path.home() / ".config" / "saddleback" / "config.toml"
-    project_config = cwd / "saddleback.toml"
-
-    merged: dict[str, Any] = {}
-    for layer in (user_config, project_config):
-        merged = _deep_merge(merged, _load_toml(layer))
-    merged = _deep_merge(merged, _from_env())
     if explicit_path is not None:
-        merged = _deep_merge(merged, _load_toml(explicit_path))
-
-    return Config.model_validate(merged)
+        load_dotenv_into_env(explicit_path)
+    else:
+        load_dotenv_into_env(cwd / ".env")
+    return Config.model_validate(_from_env())

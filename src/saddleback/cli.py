@@ -52,7 +52,7 @@ def main(
         "-c",
         exists=True,
         readable=True,
-        help="Explicit config file path.",
+        help="Path to an explicit .env file (overrides ./.env discovery).",
     ),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress non-error stdout."),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging to stderr."),
