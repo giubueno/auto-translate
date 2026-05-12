@@ -27,6 +27,9 @@ def _system_prompt(target_name: str, max_words: int, shorter: bool = False) -> s
         f"Translate the user message into {target_name}. "
         f"Output ONLY the translation, no commentary, no quotes, no explanation. "
         f"Preserve proper nouns, product names, and technical acronyms unchanged. "
+        f"Keep common modern English loanwords that {target_name} speakers use "
+        f"natively in speech (e.g. 'shout-out', 'meeting', 'brunch', 'team', 'feedback'); "
+        f"do NOT translate these into a clumsy native equivalent — leave them in English. "
         f"Match the tone of the source (informal/professional). "
     )
     constraint = (

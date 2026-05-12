@@ -80,6 +80,7 @@ def _synthesize_one(
             ref_audio=str(ref_wav),
             lang_code=lang_code,
             temperature=cfg.tts.temperature,
+            speed=cfg.tts.speed,
         ):
             audio = result.audio if hasattr(result, "audio") else result
             if hasattr(audio, "tolist"):

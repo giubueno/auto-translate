@@ -20,9 +20,11 @@ class BuildError(Exception):
     pass
 
 
-# Fit thresholds — distortion bounds.
-MIN_RATIO = 0.7   # don't slow down beyond 0.7x (would over-stretch)
-MAX_RATIO = 1.5   # don't speed up beyond 1.5x (would under-fit)
+# Fit thresholds — distortion bounds. Tighter bands push borderline clips
+# into the regen/--shorter path rather than letting atempo squash them and
+# produce "Mickey Mouse" / metallic artifacts.
+MIN_RATIO = 0.75  # don't slow beyond 0.75x (would over-stretch and smear)
+MAX_RATIO = 1.25  # don't compress beyond 1.25x (above this, formants smear)
 
 
 def _atempo_chain(ratio: float) -> list[str]:

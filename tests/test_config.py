@@ -13,6 +13,8 @@ def test_defaults_match_prd():
     assert cfg.translator.endpoint == "http://localhost:1234/v1"
     assert cfg.translator.model == "google/gemma-4-e4b"
     assert cfg.tts.model == "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
+    assert cfg.tts.temperature == 0.5
+    assert cfg.tts.speed == 0.92
     assert cfg.targets.languages == ["de", "es"]
     assert cfg.runtime.parallel_tts is False  # NFR-RC3
 

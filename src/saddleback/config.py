@@ -50,7 +50,15 @@ class TtsConfig(BaseModel):
     sample_rate_out: int = 24000
     ref_min_seconds: float = 3.0
     ref_max_seconds: float = 8.0
-    temperature: float = 0.7
+    # Lower temperature = more stable prosody, less voice wobble. 0.5 is a
+    # good narration default; raise toward 0.7 for more expressive delivery
+    # at the cost of more variance.
+    temperature: float = 0.5
+    # <1.0 makes Qwen3-TTS generate slightly slower, leaving more headroom
+    # for the downstream time-fit step. 0.92 is the empirical default that
+    # reduces "Mickey Mouse" artifacts from extreme atempo compression
+    # while still keeping each clip near its source segment duration.
+    speed: float = 0.92
 
 
 class OutputConfig(BaseModel):
