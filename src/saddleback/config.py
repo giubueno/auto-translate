@@ -9,7 +9,12 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class TranslatorConfig(BaseModel):
-    endpoint: str = "http://192.168.0.77:1234/v1"
+    # Default targets a local LM Studio instance running on the same machine.
+    # Operators running LM Studio on another host on the LAN should override
+    # via the SADDLEBACK_TRANSLATOR_ENDPOINT environment variable or via
+    # ~/.config/saddleback/config.toml — do NOT hard-code a LAN IP into a
+    # committed default (would publish private network topology).
+    endpoint: str = "http://localhost:1234/v1"
     model: str = "google/gemma-4-e4b"
     api_key: str = "lm-studio"
     temperature: float = 0.2

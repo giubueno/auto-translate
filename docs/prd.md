@@ -40,7 +40,7 @@ discoveryNotes:
 externalDependencies:
   translator:
     provider: "LM Studio (OpenAI-compatible API)"
-    endpoint: "http://192.168.0.77:1234/v1"
+    endpoint: "configurable via SADDLEBACK_TRANSLATOR_ENDPOINT; defaults to http://localhost:1234/v1"
     model: "google/gemma-4-e4b"
     smokeTest: "PASS (DE+ES idiomatic output)"
   tts:
@@ -142,7 +142,7 @@ The tool addresses a concrete pain: solo-presenter meeting recordings — pitch 
 2. CLI confirms: source detected, no `.srt` sidecar, both DE and ES targets, 28:14 duration. Asks `[y/N]`. Confirms.
 3. Stage 1 — *Extract audio.* Bar fills in seconds. Source ref clip auto-extracted from longest contiguous speech window.
 4. Stage 2 — *Transcribe.* faster-whisper large-v3-turbo chews through audio. Per-segment count rises live. ~2 min.
-5. Stage 3 — *Translate.* LM Studio at `192.168.0.77:1234` reachable, `gemma-4-e4b` loaded. Per-segment progress for DE, then ES. ~5 min combined.
+5. Stage 3 — *Translate.* LM Studio at the configured endpoint reachable, `gemma-4-e4b` loaded. Per-segment progress for DE, then ES. ~5 min combined.
 6. Stage 4 — *TTS.* Qwen3-TTS via `mlx_audio` synthesizes DE then ES, segment by segment. Per-segment RTF shown live. ~30 min combined.
 7. Stage 5 — *Time-fit + Build.* Each segment stretched/compressed to source timing window. Crossfade across gaps. Audible warning lights up if any segment exceeded length budget (none did).
 8. Stage 6 — *Mux.* `weekly-demo-2026-05-08_de.mp4` and `_es.mp4` written next to the source.
@@ -235,7 +235,7 @@ Capabilities NOT directly revealed (out of MVP):
 
 ### Technical Constraints
 
-- **Privacy by construction.** No external HTTP egress is permitted by design for any pipeline stage in MVP. The translator endpoint is on the operator's LAN (`http://192.168.0.77:1234`). Whisper, mlx_audio, and ffmpeg are all on-device. Any future cloud option must be a deliberate, opt-in addition.
+- **Privacy by construction.** No external HTTP egress is permitted by design for any pipeline stage in MVP. The translator endpoint is on `localhost` or the operator's LAN (configured per-operator via env var or local config; never committed). Whisper, mlx_audio, and ffmpeg are all on-device. Any future cloud option must be a deliberate, opt-in addition.
 - **Integration boundary — LM Studio.** The translator dependency is reached over an OpenAI-compatible HTTP API on the local network. The tool MUST NOT hard-code the host or model — both are configurable. Reachability check (`GET /v1/models`) MUST run before any translation work begins, with a clear failure message including the configured URL.
 - **Model licensing — operator's responsibility.** Qwen3-TTS (Apache-2.0 weights via `mlx-community`), `gemma-4-e4b` (Gemma terms), `faster-whisper` / OpenAI Whisper (MIT). All permissive for personal use. The PRD does not redistribute models; operator pulls them from HuggingFace / LM Studio directly. License terms are noted in the README, not enforced in code.
 - **Local file-system trust boundary.** All artifacts (audio, transcripts, translations, TTS clips, intermediate state) live under a single job directory (`runs/<timestamp>/`). The tool reads/writes only within this tree plus the source MP4's directory. No system-wide writes.
@@ -326,7 +326,7 @@ Config file format: TOML. Example:
 
 ```toml
 [translator]
-endpoint = "http://192.168.0.77:1234/v1"
+endpoint = "http://localhost:1234/v1"   # override via SADDLEBACK_TRANSLATOR_ENDPOINT for a LAN host
 model    = "google/gemma-4-e4b"
 temperature = 0.2
 max_concurrency = 4
