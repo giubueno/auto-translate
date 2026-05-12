@@ -99,12 +99,24 @@ def dub(
         help="Target language(s): 'de', 'es', or 'both'.",
         case_sensitive=False,
     ),
+    also_audio: str | None = typer.Option(
+        None,
+        "--also-audio",
+        help=(
+            "Additionally export the dubbed audio as an audio-only file next "
+            "to the source MP4. Accepts: wav, m4a, or mp3."
+        ),
+        case_sensitive=False,
+    ),
 ) -> None:
     """Run the full dub pipeline end-to-end."""
     from saddleback.orchestrator import run_dub
 
     targets = _resolve_targets(lang)
-    code = run_dub(source=source, targets=targets, opts=ctx.obj or {})
+    opts = dict(ctx.obj or {})
+    if also_audio is not None:
+        opts["audio_export"] = _validate_audio_format(also_audio)
+    code = run_dub(source=source, targets=targets, opts=opts)
     raise typer.Exit(code=int(code))
 
 
@@ -122,6 +134,12 @@ def regen(
         "--shorter",
         help="Re-prompt translator with a 'shorter' instruction.",
     ),
+    also_audio: str | None = typer.Option(
+        None,
+        "--also-audio",
+        help="Refresh the audio-only export (wav, m4a, or mp3) for the regenerated language.",
+        case_sensitive=False,
+    ),
     run_id: str | None = typer.Option(
         None,
         "--run-id",
@@ -132,12 +150,15 @@ def regen(
     from saddleback.orchestrator import run_regen
 
     targets = _resolve_targets(lang)
+    opts = dict(ctx.obj or {})
+    if also_audio is not None:
+        opts["audio_export"] = _validate_audio_format(also_audio)
     code = run_regen(
         segment_id=segment_id,
         targets=targets,
         shorter=shorter,
         run_id=run_id,
-        opts=ctx.obj or {},
+        opts=opts,
     )
     raise typer.Exit(code=int(code))
 
@@ -192,6 +213,14 @@ def clean(
 
     code = run_clean(run_id=run_id, keep_outputs=keep_outputs, opts=ctx.obj or {})
     raise typer.Exit(code=int(code))
+
+
+def _validate_audio_format(fmt: str) -> str:
+    f = fmt.strip().lower()
+    if f not in {"wav", "m4a", "mp3"}:
+        sys.stderr.write(f"unknown --also-audio format: {fmt!r}; expected wav, m4a, or mp3\n")
+        raise typer.Exit(code=ExitCode.BAD_USAGE)
+    return f
 
 
 def _resolve_targets(lang: str) -> list[str]:

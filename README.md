@@ -82,11 +82,13 @@ saddleback dub ~/Downloads/meeting.mp4
 ## Commands
 
 ```text
-saddleback dub <input.mp4> [--lang de|es|both]
+saddleback dub <input.mp4> [--lang de|es|both] [--also-audio wav|m4a|mp3]
     Run the full pipeline end-to-end. Writes <input>_de.mp4 and/or <input>_es.mp4
     next to the source. Default --lang is 'both'.
+    --also-audio additionally writes <input>_de.<ext> / <input>_es.<ext>
+    (audio-only) using the chosen format.
 
-saddleback regen <segment-id> [--lang de|es] [--shorter] [--run-id <id>]
+saddleback regen <segment-id> [--lang de|es] [--shorter] [--also-audio fmt] [--run-id <id>]
     Regenerate one segment of an existing run. Re-translates, re-synthesizes,
     rebuilds only the affected synced track, and re-muxes only the affected
     target MP4. --shorter re-prompts the translator with a 'shorter' instruction
@@ -206,6 +208,20 @@ Final dubbed videos land next to the source:
 ```
 
 The video stream is copied (no re-encode); audio is re-encoded to AAC.
+
+### Audio-only export (optional)
+
+If you want the dubbed audio as a standalone file (for podcast distribution, mobile playback, or sharing without the video), enable audio export with the `--also-audio` flag or the `SADDLEBACK_OUTPUT_AUDIO_EXPORT` env var:
+
+```bash
+# Produces <source>_de.wav and <source>_es.wav alongside the MP4s.
+saddleback dub meeting.mp4 --also-audio wav
+
+# Or persistently via .env:
+SADDLEBACK_OUTPUT_AUDIO_EXPORT=m4a saddleback dub meeting.mp4
+```
+
+Supported formats: `wav` (lossless copy from the synced track), `m4a` (AAC via ffmpeg), `mp3` (libmp3lame via ffmpeg). Audio bitrate for the lossy formats follows `SADDLEBACK_OUTPUT_AUDIO_BITRATE_K`.
 
 ---
 

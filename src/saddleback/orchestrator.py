@@ -222,6 +222,39 @@ def run_dub(source: Path, targets: list[str], opts: dict[str, Any]) -> ExitCode:
         _record_stage(manifest, "mux", ok=True, artifacts=list(outputs.values()))
         _emit_event(opts, event="stage_done", stage="mux")
 
+        # Optional: audio-only export next to source.
+        audio_outputs: dict[str, Path] = {}
+        if cfg.output.audio_export:
+            _start_stage(manifest, "audio_export")
+            _save_manifest(run_dir, manifest)
+            from saddleback.stages.audio_export import AudioExportError, run as audio_export_run
+
+            try:
+                audio_outputs = audio_export_run(
+                    source=source,
+                    synced_tracks_by_lang=tracks_by_lang,
+                    fmt=cfg.output.audio_export,
+                    cfg=cfg,
+                )
+            except AudioExportError as exc:
+                _record_stage(manifest, "audio_export", ok=False, detail=str(exc))
+                _save_manifest(run_dir, manifest)
+                console.print(f"[red]audio_export failed:[/] {exc}")
+                return ExitCode.STAGE_FAILED
+            _record_stage(
+                manifest,
+                "audio_export",
+                ok=True,
+                artifacts=list(audio_outputs.values()),
+            )
+            _emit_event(
+                opts,
+                event="stage_done",
+                stage="audio_export",
+                format=cfg.output.audio_export,
+                outputs=[str(p) for p in audio_outputs.values()],
+            )
+
         # Quality report
         _start_stage(manifest, "report")
         from saddleback.report import build_report
@@ -241,7 +274,7 @@ def run_dub(source: Path, targets: list[str], opts: dict[str, Any]) -> ExitCode:
         manifest.notes.append(f"completed in {elapsed:.1f}s")
         _save_manifest(run_dir, manifest)
 
-        _print_summary(console, run_dir, segments, outputs, flagged_by_lang, elapsed)
+        _print_summary(console, run_dir, segments, outputs, audio_outputs, flagged_by_lang, elapsed)
         _emit_event(opts, event="run_done", run_id=run_dir.name, elapsed_s=round(elapsed, 2))
         return ExitCode.OK
 
@@ -263,6 +296,7 @@ def _print_summary(
     run_dir: Path,
     segments: list[Segment],
     outputs: dict[str, Path],
+    audio_outputs: dict[str, Path],
     flagged_by_lang: dict[str, list[int]],
     elapsed: float,
 ) -> None:
@@ -275,6 +309,8 @@ def _print_summary(
         flagged_count = len(flagged_by_lang.get(lang, []))
         table.add_row(f"{lang} output", str(path))
         table.add_row(f"{lang} flagged segments", str(flagged_count))
+    for lang, path in audio_outputs.items():
+        table.add_row(f"{lang} audio export", str(path))
     console.print(table)
 
 
@@ -353,6 +389,23 @@ def run_regen(
         )
         out = remux_one(source=source, synced_audio=track_path, lang=lang, cfg=cfg)
         final_outputs[lang] = out
+
+        # Refresh audio export if enabled so the .wav/.m4a/.mp3 stays in sync.
+        if cfg.output.audio_export:
+            from saddleback.stages.audio_export import AudioExportError, export_one
+
+            try:
+                audio_out = export_one(
+                    synced_wav=track_path,
+                    source=source,
+                    lang=lang,
+                    fmt=cfg.output.audio_export,
+                    cfg=cfg,
+                )
+                console.print(f"[green]{lang}[/]: audio export refreshed → {audio_out}")
+            except AudioExportError as exc:
+                console.print(f"[yellow]{lang} audio export skipped:[/] {exc}")
+
         manifest.notes.append(
             f"regen segment {segment_id} ({lang}): shorter={shorter}, "
             f"flagged={'yes' if segment_id in flagged_ids else 'no'}"
@@ -464,4 +517,9 @@ def _apply_runtime_overrides(cfg: Config, opts: dict[str, Any]) -> Config:
     """Translate CLI flags into config overrides where applicable."""
     if opts.get("test_mode") or os.environ.get("SADDLEBACK_RUNTIME_TEST_MODE", "").lower() == "true":
         cfg = cfg.model_copy(update={"runtime": cfg.runtime.model_copy(update={"test_mode": True})})
+    audio_export = opts.get("audio_export")
+    if audio_export:
+        cfg = cfg.model_copy(
+            update={"output": cfg.output.model_copy(update={"audio_export": audio_export})}
+        )
     return cfg

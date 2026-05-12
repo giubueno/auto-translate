@@ -58,12 +58,37 @@ class OutputConfig(BaseModel):
     copy_video: bool = True
     audio_codec: str = "aac"
     audio_bitrate_k: int = 192
+    # If set to "wav", "m4a", or "mp3", export an audio-only file next to the
+    # source MP4 in addition to the dubbed video (e.g. meeting_de.wav).
+    audio_export: str | None = None
 
     @field_validator("formats", mode="before")
     @classmethod
     def _coerce_formats(cls, v: Any) -> Any:
         if isinstance(v, str):
             return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
+    @field_validator("audio_export", mode="before")
+    @classmethod
+    def _coerce_audio_export(cls, v: Any) -> Any:
+        if v is None or v == "" or v is False:
+            return None
+        if isinstance(v, str):
+            v = v.strip().lower()
+            if v in {"", "none", "false", "off", "no"}:
+                return None
+        return v
+
+    @field_validator("audio_export")
+    @classmethod
+    def _validate_audio_export(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if v not in {"wav", "m4a", "mp3"}:
+            raise ValueError(
+                f"unsupported audio_export format {v!r}; expected wav, m4a, or mp3"
+            )
         return v
 
 

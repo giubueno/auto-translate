@@ -119,3 +119,41 @@ def test_test_mode_does_not_require_whisper_or_lm_studio(fixture_mp4: Path, tmp_
         opts={"test_mode": True, "json": False, "quiet": True, "config_path": None},
     )
     assert code == ExitCode.OK
+
+
+def test_dub_with_also_audio_writes_wav_next_to_source(fixture_mp4: Path, tmp_path: Path, monkeypatch):
+    """End-to-end with --also-audio produces meeting_de.wav next to the source."""
+    _ffmpeg_or_skip()
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    source = workdir / "sample.mp4"
+    shutil.copy(fixture_mp4, source)
+
+    srt = workdir / "sample.srt"
+    srt.write_text(
+        "1\n00:00:00,000 --> 00:00:04,000\nHello there.\n",
+        encoding="utf-8",
+    )
+
+    runs_dir = tmp_path / "runs"
+    monkeypatch.setenv("SADDLEBACK_RUNTIME_RUNS_DIR", str(runs_dir))
+    monkeypatch.setenv("SADDLEBACK_RUNTIME_TEST_MODE", "true")
+
+    from saddleback.orchestrator import run_dub
+
+    code = run_dub(
+        source=source,
+        targets=["de", "es"],
+        opts={
+            "test_mode": True,
+            "json": False,
+            "quiet": True,
+            "config_path": None,
+            "audio_export": "wav",
+        },
+    )
+    assert code == ExitCode.OK
+    assert (workdir / "sample_de.wav").exists()
+    assert (workdir / "sample_es.wav").exists()
+    assert (workdir / "sample_de.mp4").exists()
+    assert (workdir / "sample_es.mp4").exists()
